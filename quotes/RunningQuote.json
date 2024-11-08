@@ -1,0 +1,532 @@
+[
+    {
+        "ID": 1,
+        "quote": "I don’t run to add days to my life, I run to add life to my days.",
+        "author": "Ronald Rook"
+    },
+    {
+        "ID": 2,
+        "quote": "In running, it doesn’t matter whether you come in first, in the middle of the pack, or last. You can say, “I have finished.” There is a lot of satisfaction in that.",
+        "author": "Fred Lebow"
+    },
+    {
+        "ID": 3,
+        "quote": "One run can change your day, many runs can change your life.",
+        "author": "Unknown"
+    },
+    {
+        "ID": 4,
+        "quote": "Running is the greatest metaphor for life, because you get out of it what you put into it.",
+        "author": "Oprah Winfrey"
+    },
+    {
+        "ID": 5,
+        "quote": "We are what we repeatedly do. Excellence, then, is not an act, but a habit.",
+        "author": "Aristotle"
+    },
+    {
+        "ID": 6,
+        "quote": "Keep running and don't look down, because if you do, you'll see the stumps that are your legs. You're an amputee.",
+        "author": "Arnav Kamath"
+    },
+    {
+        "ID": 7,
+        "quote": "Every marathon I ran, I knew I had a faster one in me.",
+        "author": "Dick Beardsley"
+    },
+    {
+        "ID": 8,
+        "quote": "I run so I can eat more.",
+        "author": "Evyn Catton"
+    },
+    {
+        "ID": 9,
+        "quote": "I like morning runs, but morning implies sunlight. No more 4 a.m. wake-ups, you maniac.",
+        "author": "Neon"
+    },
+    {
+        "ID": 10,
+        "quote": "Run. Because zombies will eat the untrained ones first.",
+        "author": "From the Zombie Apocalypse Survival Guide"
+    },
+    {
+        "ID": 11,
+        "quote": "If it doesn’t challenge you, it doesn’t change you.",
+        "author": "Fred DeVito"
+    },
+    {
+        "ID": 12,
+        "quote": "We are designed to run, and we increase our chance of daily happiness when we do so.",
+        "author": "Jeff Galloway"
+    },
+    {
+        "ID": 13,
+        "quote": "I love running cross country. On a track, I feel like a hamster.",
+        "author": "Robin Williams"
+    },  
+    {
+        "ID": 14,
+        "quote": "It gave me a natural endorphin high, but it also helped me sleep, so it was perfect. It’s easy to understand how people replace addiction with exercise.",
+        "author": "Eminem"
+    },
+    {
+        "ID": 15,
+        "quote": "It makes me feel like I can conquer anything that comes at me. I’m never tapped out. I’m never tired around my two kids. I owe a lot of that to running.",
+        "author": "Travis Barker"
+    },
+    {
+        "ID": 16,
+        "quote": "I woke up on my birthday and said, “I want to run 10 miles.” I just wanted to see if I could run double-digit mileage.",
+        "author": "Sterling K. Brown"
+    },
+    {
+        "ID": 17,
+        "quote": "Running has been my main form of exercise. I’ve been running five or six days a week. I love it.",
+        "author": "Natalie Coughlin"
+    },
+    {
+        "ID": 18,
+        "quote": "It started to become what I looked forward to most; it was the only time I got to be in my own head.",
+        "author": "Rob Riggle"
+    },
+    {
+        "ID": 19,
+        "quote": "Running is the basis of all the training that I do… it’s like an escape.",
+        "author": "Ellie Goulding"
+    },
+    {
+        "ID": 20,
+        "quote": "Don’t be afraid to fail. It’s not the end of the world and in many ways, it’s the first step toward learning something better and getting better at it.",
+        "author": "Jon Hamm"
+    },
+    {
+        "ID": 21,
+        "quote": "Fast running isn’t forced. You have to relax and let the run come out of you.",
+        "author": "Desiree Linden"
+    },
+    {
+        "ID": 22,
+        "quote": "To me, sweat is workout bliss.",
+        "author": "Brooke Burke-Charvet"
+    },
+    {
+        "ID": 23,
+        "quote": "Slow runners make fast runners look good. Thank you.",
+        "author": "From the back of a T-shirt"
+    },
+    {
+        "ID": 24,
+        "quote": "There are clubs you can’t belong to, neighbors you can’t live in, schools you can’t get into, but the roads are always open.",
+        "author": "NIKE"
+    },
+    {
+        "ID": 25,
+        "quote": "The miracle isn’t that I finished. The miracle is that I had the courage to start.",
+        "author": "John Bingham"
+    },
+    {
+        "ID": 26,
+        "quote": "Run when you can, walk if you have to, crawl if you must, just never give up.",
+        "author": "Dean Karnazes"
+    },
+    {
+        "ID": 27,
+        "quote": "If the hill has its own name, then it's probably a pretty tough hill.",
+        "author": "Marty Stern"
+    },
+    {
+        "ID": 28,
+        "quote": "Nothing lifts me out of a bad mood better than a hard workout on my treadmill. It never fails. To us, exercise is nothing short of a miracle.",
+        "author": "Cher"
+    },
+    {
+        "ID": 29,
+        "quote": "I am 100 percent convinced that working out is part of what makes me so happy.",
+        "author": "Jennifer Lopez"
+    },
+    {
+        "ID": 30,
+        "quote": "Running is great for your body. It will increase your energy levels and helps you to clear your mind.",
+        "author": "Heidi Klum"
+    },
+    {
+        "ID": 31,
+        "quote": "Just keep moving. Someone said this to me a long time ago. It’s a Buddhist saying, I think: “There is no wasted effort.”",
+        "author": "Lauren Graham"
+    },
+    {
+        "ID": 32,
+        "quote": "Tough runs don't last; tough runners do.",
+        "author": "Book name from amazon"
+    },
+    {
+        "ID": 33,
+        "quote": "All great achievements require time.",
+        "author": "Maya Angelou"
+    },
+    {
+        "ID": 34,
+        "quote": "I feel like when I am running, it not only helps change me physically, it also improves my state of mind.",
+        "author": "Derek Hough"
+    },
+    {
+        "ID": 35,
+        "quote": "I love the way that it makes my body feel and it’s just my time for myself where I can get out there and think and let my mind go.",
+        "author": "Laila Ali"
+    },
+    {
+        "ID": 36,
+        "quote": "If I continue to set goals and accomplish those goals, that means I’m doing something right.",
+        "author": "Kevin Hart"
+    },
+    {
+        "ID": 37,
+        "quote": "I’m all about breaking mental boundaries, and training for a marathon falls right into the Jedi mind-training I need.",
+        "author": "Alicia Keys"
+    },
+    {
+        "ID": 38,
+        "quote": "Life is short. Running makes it seem longer.",
+        "author": "Baron Hansen"
+    },
+    {
+        "ID": 39,
+        "quote": "Running is something you can do and be alone in your thoughts, and I like that.",
+        "author": "Carole Radziwill"
+    },
+    {
+        "ID": 40,
+        "quote": "Run often. Run long. But never outrun your joy of running.",
+        "author": "Julie Isphording"
+    },
+    {
+        "ID": 41,
+        "quote": "Something happens to me when I run. People think it’s crazy when I say it. All of my ideas come in when I run. That is my time where it’s just me, where I get to create.",
+        "author": "Theo Rossi"
+    },
+    {
+        "ID": 42,
+        "quote": "Don’t dream of winning, train for it!",
+        "author": "Mo Farah"
+    },
+    {
+        "ID": 43,
+        "quote": "If you can’t fly then run, if you can’t run then walk, if you can’t walk then crawl, but whatever you do you have to keep moving forward.",
+        "author": "Martin Luther King, Jr."
+    },
+    {
+        "ID": 44,
+        "quote": "The only failure is not to try.",
+        "author": "George Clooney"
+    },
+    {
+        "ID": 45,
+        "quote": "Be so good they can’t ignore you.",
+        "author": "Steve Martin"
+    },
+    {
+        "ID": 46,
+        "quote": "If the sun comes up, I have a chance.",
+        "author": "Venus Williams"
+    },
+    {
+        "ID": 47,
+        "quote": "Strength does not come from physical capacity. It comes from an indomitable will.",
+        "author": "Mahatma Gandhi"
+    },
+    {
+        "ID": 48,
+        "quote": "If you have a body, you are an athlete.",
+        "author": "Bill Bowerman"
+    },
+    {
+        "ID": 49,
+        "quote": "I’ve failed over and over again in my life. And that is why I succeed.",
+        "author": "Michael Jordan"
+    },
+    {
+        "ID": 50,
+        "quote": "Quality is much better than quantity. One home run is much better than two doubles.",
+        "author": "Steve Jobs"
+    },
+    {
+        "ID": 51,
+        "quote": "Everyone in life is looking for a certain rush. Racing is where I get mine.",
+        "author": "John Trautmann"
+    },
+    {
+        "ID": 52,
+        "quote": "Your sweat is your fat crying. Keep it up.",
+        "author": "From a runner's T-shirt"
+    },
+    {
+        "ID": 53,
+        "quote": "Good things come slow. Especially in distance running.",
+        "author": "Bill Dellinger"
+    },
+    {
+        "ID": 54,
+        "quote": "When I’m working 16-hour days and I can’t work out, I get angry very easily. It’s because I’m missing all those good endorphins. For me, exercise equals happiness.",
+        "author": "Heather Morris"
+    },
+    {
+        "ID": 55,
+        "quote": "Just running the streets was absolutely everything and more than I possibly expected.",
+        "author": "Jennie Finch"
+    },
+    {
+        "ID": 56,
+        "quote": "I run every day. It’s like medicine.",
+        "author": "Jennifer Carpenter"
+    },
+    {
+        "ID": 57,
+        "quote": "If we had a drug that did what exercise did, it would be the biggest revolution ever and would be promoted all over the world. And all you have to do is go out for a run.",
+        "author": "Greg Wells, Ph.D."
+    },
+    {
+        "ID": 58,
+        "quote": "Exercise is so amazing from the inside out. I feel so alive and have so much energy.",
+        "author": "Vanessa Hudgens"
+    },
+    {
+        "ID": 59,
+        "quote": "You can’t be upset at the results you didn’t get for the work you didn’t do.",
+        "author": "Jess Sims"
+    },
+    {
+        "ID": 60,
+        "quote": "As we run, we become.",
+        "author": "Amby Burfoot"
+    },
+    {
+        "ID": 61,
+        "quote": "Things that hurt, instruct.",
+        "author": "Benjamin Franklin"
+    },
+    {
+        "ID": 62,
+        "quote": "Go fast enough to get there, but slow enough to see.",
+        "author": "Jimmy Buffett"
+    },
+    {
+        "ID": 63,
+        "quote": "Running is the classical road to self-consciousness, self-awareness, and self-reliance.",
+        "author": "Noel Carroll"
+    },
+    {
+        "ID": 64,
+        "quote": "Runners just do it – they run for the finish line even if someone else has reached it first.",
+        "author": "Unknown"
+    },
+    {
+        "ID": 65,
+        "quote": "Nothing, not even pain, lasts forever. If I can just keep putting one foot in front of the other, I will eventually get to the end.",
+        "author": "Kim Cowart"
+    },
+    {
+        "ID": 66,
+        "quote": "Just stick with it. What seems hard now will one day be your warm-up.",
+        "author": "Unknown"
+    },
+    {
+        "ID": 67,
+        "quote": "It’s an acquired skill, being able to discuss your love life, children, and friends, all while you’re running! But we have mastered it.",
+        "author": "Reese Witherspoon"
+    },
+    {
+        "ID": 68,
+        "quote": "Your mind is your strongest muscle.",
+        "author": "Tunde Oyeneyin"
+    },
+    {
+        "ID": 69,
+        "quote": "Coming back to running after a few weeks off is really tough. It’s humbling. Nothing wrong with a large dose of humility.",
+        "author": "Davina McCall"
+    },
+    {
+        "ID": 70,
+        "quote": "Running a marathon is not a question of whether it will be painful, but when it will be painful. It does help to have a sense of humor, but I’m also respectful of the race.",
+        "author": "Will Ferrell"
+    },
+    {
+        "ID": 71,
+        "quote": "I choose the things that I want to do, and they all revolve around one thing: food. Even my running has to do with food. I run to stay in shape so I can eat what I want.",
+        "author": "Bobby Flay"
+    },
+    {
+        "ID": 72,
+        "quote": "I like trails more than roads. I’ve jumped over my share of rattlesnakes. I’ve seen mountain lions, coyotes, bobcats, skunks, hawks.",
+        "author": "Reggie Miller"
+    },
+    {
+        "ID": 73,
+        "quote": "How do you know if someone ran a marathon? Don’t worry, they’ll tell you.",
+        "author": "Jimmy Fallon"
+    },
+    {
+        "ID": 74,
+        "quote": "I love running cross country. On a track, I feel like a hamster.",
+        "author": "Robin Williams"
+    },
+    {
+        "ID": 75,
+        "quote": "A good laugh and a long run are the two best cures for anything.",
+        "author": "Unknown"
+    },
+    {
+        "ID": 76,
+        "quote": "Jogging is very beneficial. It’s good for your legs and your feet. It’s also very good for the ground. It makes it feel needed.",
+        "author": "Charles M. Schultz"
+    },
+    {
+        "ID": 77,
+        "quote": "My doctor told me that jogging could add years to my life. I think he was right. I feel ten years older already.",
+        "author": "Milton Berle"
+    },
+    {
+        "ID": 78,
+        "quote": "Don’t be a jogger, they’re the one’s who find dead bodies.",
+        "author": "Amanda Brooks"
+    },
+    {
+        "ID": 79,
+        "quote": "The trouble with jogging is that, by the time you realize you’re not in shape for it, it’s too far to walk back.",
+        "author": "Franklin P. Jones"
+    },
+    {
+        "ID": 80,
+        "quote": "I’ve got 99 problems, so I went on a run to ignore them all.",
+        "author": "Unknown"
+    },
+    {
+        "ID": 81,
+        "quote": "I believe that the Good Lord gave us a finite number of heartbeats and I’m damned if I’m going to use up mine running up and down a street.",
+        "author": "Neil Armstrong"
+    },
+    {
+        "ID": 82,
+        "quote": "We can’t all be heroes because someone has to sit on the curb and clap as they go by.",
+        "author": "Will Rogers"
+    },
+    {
+        "ID": 83,
+        "quote": "Good things come slow – especially in distance running.",
+        "author": "Bill Dellinger"
+    },
+    {
+        "ID": 84,
+        "quote": "There is magic in misery. Just ask any runner.",
+        "author": "Dean Karnazes"
+    },
+    {
+        "ID": 85,
+        "quote": "I am a running joke. Waking up at 4:30 am and jogging anywhere from 11 to 23 miles has been nothing short of horrifying.",
+        "author": "Ryan Reynolds"
+    },
+    {
+        "ID": 86,
+        "quote": "If you’ve never had a bad day running, you’re probably doing something wrong. If you’ve never had a good day running, you’re definitely doing something wrong.",
+        "author": "Mark Remy"
+    },
+    {
+        "ID": 87,
+        "quote": "I go running when I have to. When the ice cream truck is doing sixty.",
+        "author": "Wendy Liebman"
+    },
+    {
+        "ID": 88,
+        "quote": "Step one to running a marathon: You run. There is no step two.",
+        "author": "Barney Stinson"
+    },
+    {
+        "ID": 89,
+        "quote": "Why run, when you can walk?",
+        "author": "Lucas Jansta"
+    },
+    {
+        "ID": 90,
+        "quote": "Running is a lot like life. Only 10 percent of it is exciting. 90 percent of it is slog and drudge.",
+        "author": "Dave Bedford"
+    },
+    {
+        "ID": 91,
+        "quote": "Run like hell and get the agony over with.",
+        "author": "Clarence DeMar"
+    },
+    {
+        "ID": 92,
+        "quote": "Most people run a race to see who is fastest. I run a race to see who has the most guts.",
+        "author": "Steve Prefontaine"
+    },
+    {
+        "ID": 93,
+        "quote": "Unless you puke, faint, or die, keep going!",
+        "author": "Jillian Michaels"
+    },
+    {
+        "ID": 94,
+        "quote": "If you still look cute after working out, you didn’t go hard enough.",
+        "author": "Unknown"
+    },
+    {
+        "ID": 95,
+        "quote": "Whoever established the high road and how high it should be should be fired.",
+        "author": "Sandra Bullock"
+    },
+    {
+        "ID": 96,
+        "quote": "The pain of running relieves the pain of living.",
+        "author": "Jacqueline Gunn"
+    },
+    {
+        "ID": 97,
+        "quote": "I run because if I didn't, I'd be sluggish and glum and spend too much time on the couch.",
+        "author": "Peter Sagal"
+    },
+    {
+        "ID": 98,
+        "quote": "If you run, you are a runner. It doesn't matter how fast or how far.",
+        "author": "Julie Isphording"
+    },
+    {
+        "ID": 99,
+        "quote": "The miracle isn't that I finished. The miracle is that I had the courage to start.",
+        "author": "John Bingham"
+    },
+    {
+        "ID": 100,
+        "quote": "If it's not on Strava, it didn't happen.",
+        "author": "Aubrey Lindberg-buchhorn"
+    },
+    {
+        "ID": 101,
+        "quote": "JUST DO IT.",
+        "author": "NIKE"
+    },
+    {
+        "ID": 102,
+        "quote": "With all the cramps, and all the strains, come to jacked legs with all the veins.",
+        "author": "Jesus Higas"
+    },
+    {
+        "ID": 103,
+        "quote": "Your legs aren't giving out. Your heads giving in.",
+        "author": "Christian Gonzalez"
+    },
+    {
+        "ID": 104,
+        "quote": "Wherever your mind goes, your body follows, Wherever your thoughts go, your life follows.",
+        "author": "Ryan Holiday"
+    }, 
+    {
+        "ID": 105,
+        "quote": "Your mind will quit a thousand times before your body will. Feel the fear and do it anyway.",
+        "author": " Stacy Westfall"
+    }, 
+    {
+        "ID": 106, 
+        "quote" : " It's not about winning, it's about seeing other people lose.", 
+        "author" : "Haven Gier"
+    }
+]
