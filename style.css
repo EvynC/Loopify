@@ -432,6 +432,16 @@ button:hover {
     font-size: 1rem;
 }
 
+.unit-divider {
+    width: 2px;
+    background-color: #ced4da;
+    position: absolute;
+    top: 10%;
+    bottom: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+}
 .unit-option.active {
     color: white;
 }
@@ -651,10 +661,8 @@ button:hover {
     }
 
     .map-info {
-        bottom: 20px;
-        width: 85px;
-        height: 55px;
-        font-size: smaller;
+        padding: 0.4rem;
+            font-size: 1rem;
     }
 
     /* Adjust the controls layout for mobile */
