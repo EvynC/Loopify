@@ -16,8 +16,12 @@ let redoStack = [];
 let snappedLatLng = [];
 let previousDistance = 0.25 * kmConstant;
 let bathroomLayer, trafficLightLayer, satelliteLayer;
-let showTrafficLight = false, showBathroom = false; 
+let showTrafficLight = true, showBathroom = true; 
 let loaded = false; 
+
+// Maps 
+let bathroomMarkers = new Map();
+let trafficLightMarkers = new Map();
 
 function initMap() {
     map = L.map('map').setView([0, 0], 13);
@@ -31,16 +35,9 @@ function initMap() {
     promptForLocation();
 
     map.on('zoomend', updateUserLocationCircleSize);
-    map.on('zoomend', updateObjects); 
     map.on('click', onMapClick);
-    map.on('moveed', updateObjects);
-
-
-}
-
-function updateObjects() {
-    UpdateObject("Bathroom");
-    UpdateObject("TrafficLight");
+    map.on('zoomend', () => updateObject('All')); 
+    map.on('moveend', () => updateObject('All'));
 }
 
 function promptForLocation() {
@@ -152,7 +149,6 @@ function addWaypoint(latlng) {
 
         // LETS DO THIS LATER 
         // createPath([waypoints[waypoints.length - 2], snappedLatLng])
-
 
         L.polyline([waypoints[waypoints.length - 2], snappedLatLng], { color: 'red' }).addTo(map);
     }
@@ -422,7 +418,6 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
 }
 
 function getBoundingBox(lat, lon, distance) {
-    console.log(currentUnt)
     if (currentUnit === 'mi') {
         distance *= kmConstant; // Convert miles to kilometers
     }
@@ -811,10 +806,7 @@ function initFilters() {
     toggleBathrooms.call(document.getElementById('showBathrooms'));
     toggleTrafficLights.call(document.getElementById('showTrafficLights'));
 
-    document.getElementById('satelliteView').addEventListener('change', toggleSatelliteView);
-    document.getElementById('showBathrooms').addEventListener('change', UpdateObject("Bathroom"));
-    document.getElementById('showTrafficLights').addEventListener('change', console.log("THIS SUCKS"))//UpdateObject("TrafficLight"));
-}
+   }
 
 function toggleSatelliteView() {
     if (this.checked) {
@@ -911,124 +903,82 @@ out body;
     }
 }
 
-async function UpdateObject(object) {
-    console.log("in")
+async function updateObject(object) {
     const bounds = map.getBounds();
     const zoom = map.getZoom();
 
+    // If it doesn't exist don't do anything
     if (!map || !bathroomLayer || !trafficLightLayer) return;
 
-    if (object == "Bathroom") {
-
-        // Loading Bathrooms
-        if (bathroomLayer.length === undefined) {
-
-            if (document.getElementById('showBathrooms').checked) {
-
-                const bathrooms = await fetchAndFilterObjects(
-                    `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="toilets"](${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()});out;`,
-                    './assets/Bathroom.png'
-                );
-
-                bathrooms.forEach(bathroom => {
-                    L.marker([bathroom.lat, bathroom.lon], {
-                        icon: L.icon({
-                            iconUrl: './assets/Bathroom.png',
-                            iconSize: [25, 25],
-                            iconAnchor: [12, 41]
-                        })
-                    }).addTo(bathroomLayer);
-                });
-
-                map.addLayer(bathroomLayer);
-                console.log("loaded bathrooms")
-            } 
-        } else {
-            console.log("Has bathrooms" + bathroomLayer.length)
-            // NEED TO UPATE THIS COD ETHIS IS FOR ALREADY LOADED ELEMENTS
-
-        }
-
+    // If the zoom is too big just remove everything
+    console.log("Zoom:" + zoom)
+    
+    if (zoom < 11) {
+        bathroomLayer.clearLayers();
+        trafficLightLayer.clearLayers();
+        bathroomMarkers.clear();
+        trafficLightMarkers.clear();
+        return;
     }
 
-
-
-    // TRAFFIC LIGHT 
-
-    if (object == "TrafficLight") {
-        console.log("detected")
-        // Loading Bathrooms
-        if (trafficLightLayer.length === undefined) {
-
-            if (document.getElementById('showTrafficLights').checked) {
-
-                const lights = await fetchAndFilterObjects(
-                    `https://overpass-api.de/api/interpreter?data=[out:json];node["highway"="traffic_signals"](${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()});out;`,
-                    './assets/TrafficLight.png'
-                );
-
-                filterObjects(lights, './assets/TrafficLight.png').forEach(light => {
-                    L.marker([light.lat, light.lon], {
-                        icon: L.icon({
-                            iconUrl: './assets/TrafficLight.png',
-                            iconSize: [25, 25],
-                            iconAnchor: [12, 41]
-                        })
-                    }).addTo(trafficLightLayer);
-                });
-
-                map.addLayer(trafficLightLayer);
-                console.log("loaded lights")
-            } else {
-                console.log("toggled")
-                map.removeLayer(trafficLightLayer);
-            }
-
+    // BATHROOMS
+    if (object === "Bathroom" || object === "All") {
+        if (document.getElementById('showBathrooms').checked) {
+            const bathrooms = await fetchAndFilterObjects(
+                `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="toilets"](${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()});out;`,
+                './assets/Bathroom.png'
+            );
+            updateMarkers(bathrooms, bathroomMarkers, bathroomLayer, 'Bathroom');
         } else {
-            console.log("Has lights" + trafficLightLayer.length)
-            // NEED TO UPATE THIS COD ETHIS IS FOR ALREADY LOADED ELEMENTS
-
+            bathroomLayer.clearLayers();
+            bathroomMarkers.clear();
         }
+    }
 
+    // TRAFFIC LIGHTS
+    if (object === "TrafficLight" || object === "All") {
+        if (document.getElementById('showTrafficLights').checked) {
+            const lights = await fetchAndFilterObjects(
+                `https://overpass-api.de/api/interpreter?data=[out:json];node["highway"="traffic_signals"](${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()});out;`,
+                './assets/TrafficLight.png'
+            );
+            updateMarkers(lights, trafficLightMarkers, trafficLightLayer, 'TrafficLight');
+        } else {
+            trafficLightLayer.clearLayers();
+            trafficLightMarkers.clear();
+        }
     }
 }
 
-function updateBathrooms() {
-    if (!map.hasLayer(bathroomLayer)) return;
-
-    bathroomLayer.clearLayers();
+function updateMarkers(objects, markerMap, layer, type) {
     const bounds = map.getBounds();
+    const iconUrl = type === 'Bathroom' ? './assets/Bathroom.png' : './assets/TrafficLight.png';
 
-    fetchBathrooms(bounds).then(bathrooms => {
-        filterObjects(bathrooms, "./assets/Bathroom.png").forEach(bathroom => {
-            L.marker([bathroom.lat, bathroom.lon], {
+    // Remove markers that are no longer in view
+    markerMap.forEach((marker, id) => {
+        if (!bounds.contains(marker.getLatLng())) {
+            layer.removeLayer(marker);
+            markerMap.delete(id);
+        }
+    });
+
+    // Add new markers
+    objects.forEach(obj => {
+        const id = `${obj.lat},${obj.lon}`;
+        if (!markerMap.has(id)) {
+            const marker = L.marker([obj.lat, obj.lon], {
                 icon: L.icon({
-                    iconUrl: './assets/Bathroom.png',
+                    iconUrl: iconUrl,
                     iconSize: [25, 25],
                     iconAnchor: [12, 41]
                 })
-            }).addTo(bathroomLayer);
-        });
+            });
+            marker.addTo(layer);
+            markerMap.set(id, marker);
+        }
     });
 }
 
-function updateTrafficLights() {
-    if (!map.hasLayer(trafficLightLayer)) return;
-
-    trafficLightLayer.clearLayers();
-    const bounds = map.getBounds();
-    fetchTrafficLights(bounds).then(lights => {
-        filterObjects(lights, "./assets/TrafficLight.png").forEach(light => {
-            L.marker([light.lat, light.lon], {
-                icon: L.icon({
-                    iconUrl: './assets/TrafficLight.png',
-                    iconSize: [25, 25],
-                    iconAnchor: [12, 41]
-                })
-            }).addTo(trafficLightLayer);
-        });
-    });
-}
 
 // Update the existing filterObjects function
 // function filterObjects(objects, path) {
@@ -1067,6 +1017,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('showBathrooms').addEventListener('click', () => {
         showBathroom = !showBathroom; 
+        updateObject('Bathroom'); 
+        console.log("DETECTED TOGGLE SWITCH ON BATHROOM")
         // Need to update only those that are not loaded, don't reload already loaded objects
         // Need to assing a boolean to each of the bathrooms and traffic lights according to ID 
         // Probably using a map to store all these values 
@@ -1074,6 +1026,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('showTrafficLights').addEventListener('click', () => {
         showTrafficLight = !showTrafficLight; 
+        updateObject('TrafficLight'); 
+        console.log("DETECTED TOGGLE SWITCH ON TRAFFIC LIGHT ")
+
         // Need to implement the same thing.
     }); 
 
@@ -1176,7 +1131,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (previousDistance !== distance) {
             console.log("Distance Changed");
             fetchData();
-            visualizeData();
             previousDistance = distance;
         }
     });
