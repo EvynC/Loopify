@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-layer Map Example</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        .info-box {
+            padding: 6px 8px;
+            font: 14px/16px Arial, Helvetica, sans-serif;
+            background: white;
+            background: rgba(255,255,255,0.8);
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 5px;
+        }
+        .info-box h4 {
+            margin: 0 0 5px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        let map, osmLayer, satelliteLayer, bathroomLayer;
+        const apiKey = "B46CanPo5HEBriYrDoM0";
+
+        function initMap() {
+            map = L.map('map').setView([40.7128, -74.0060], 13);
+
+            osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Method 1: API key as query parameter
+            satelliteLayer = L.tileLayer(`https://api.maptiler.com/tiles/satellite/{z}/{x}/{y}.jpg?key=${apiKey}`, {
+                attribution: '© MapTiler'
+            });
+
+            // Method 2: API key as header using XMLHttpRequest
+            const satelliteLayerXHR = L.tileLayer('https://api.maptiler.com/tiles/satellite/{z}/{x}/{y}.jpg', {
+                attribution: '© MapTiler',
+                tileSize: 512,
+                zoomOffset: -1,
+                tileLoadFunction: function (tile, src) {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('GET', src);
+                    xhr.setRequestHeader('X-API-Key', apiKey);
+                    xhr.responseType = 'blob';
+                    xhr.onload = function() {
+                        const urlCreator = window.URL || window.webkitURL;
+                        const imageUrl = urlCreator.createObjectURL(this.response);
+                        tile.src = imageUrl;
+                    };
+                    xhr.send();
+                }
+            });
+
+            // Method 3: API key as header using fetch
+            const satelliteLayerFetch = L.tileLayer('https://api.maptiler.com/tiles/satellite/{z}/{x}/{y}.jpg', {
+                attribution: '© MapTiler',
+                tileSize: 512,
+                zoomOffset: -1,
+                tileLoadFunction: function (tile, src) {
+                    fetch(src, {
+                        headers: {
+                            'X-API-Key': apiKey
+                        }
+                    })
+                    .then(response => response.blob())
+                    .then(blob => {
+                        const urlCreator = window.URL || window.webkitURL;
+                        const imageUrl = urlCreator.createObjectURL(blob);
+                        tile.src = imageUrl;
+                    });
+                }
+            });
+
+            bathroomLayer = L.layerGroup().addTo(map);
+
+            // Add some sample bathrooms
+            L.marker([40.7128, -74.0060]).bindPopup("Public Restroom 1").addTo(bathroomLayer);
+            L.marker([40.7200, -74.0100]).bindPopup("Public Restroom 2").addTo(bathroomLayer);
+            L.marker([40.7150, -74.0000]).bindPopup("Public Restroom 3").addTo(bathroomLayer);
+
+            // Add layer controls
+            L.control.layers({
+                "OpenStreetMap": osmLayer,
+                "Satellite (Query Param)": satelliteLayer,
+                "Satellite (XHR Header)": satelliteLayerXHR,
+                "Satellite (Fetch Header)": satelliteLayerFetch
+            }, {
+                "Bathrooms": bathroomLayer
+            }).addTo(map);
+
+            // Add info box
+            const info = L.control();
+
+            info.onAdd = function (map) {
+                this._div = L.DomUtil.create('div', 'info-box');
+                this.update();
+                return this._div;
+            };
+
+            info.update = function () {
+                this._div.innerHTML = '<h4>Map Layer Info</h4>' +
+                    'This map demonstrates different ways to use the MapTiler API key.<br>' +
+                    'Use the layer control to switch between different methods.';
+            };
+
+            info.addTo(map);
+        }
+
+        // Initialize the map when the page loads
+        window.onload = initMap;
+    </script>
+</body>
+</html>

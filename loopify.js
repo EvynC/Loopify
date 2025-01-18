@@ -7,6 +7,7 @@ let targetDistance = 0;
 let currentDistance = 0;
 let currentElevation = 0;
 let quotes = [];
+let OPENROUTE_API_KEY = ""; 
 let markers = [];
 let autocompleteTimeout;
 let isSearching = false;
@@ -15,9 +16,10 @@ let undoStack = [];
 let redoStack = [];
 let snappedLatLng = [];
 let previousDistance = 0.25 * kmConstant;
-let bathroomLayer, trafficLightLayer, satelliteLayer;
-let showTrafficLight = true, showBathroom = true; 
-let loaded = false; 
+let bathroomLayer, trafficLightLayer;
+let showTrafficLight = true, showBathroom = true;
+let loaded = false;
+let satelliteLayer, osmLayer; 
 
 // Maps 
 let bathroomMarkers = new Map();
@@ -25,9 +27,17 @@ let trafficLightMarkers = new Map();
 
 function initMap() {
     map = L.map('map').setView([0, 0], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+
+    osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
+    
+    // https://api.maptiler.com/tiles/satellite/16/14956/26926.jpg?key=YOUR_MAPTILER_API_KEY
+    
+    let key = "B46CanPo5HEBriYrDoM0" 
+    satelliteLayer = L.tileLayer('https://api.maptiler.com/tiles/satellite/{z}/{x}/{y}.jpg?key=' + key, {
+        attribution: '© MapTiler'
+    });
 
     bathroomLayer = L.layerGroup().addTo(map);
     trafficLightLayer = L.layerGroup().addTo(map);
@@ -36,8 +46,8 @@ function initMap() {
 
     map.on('zoomend', updateUserLocationCircleSize);
     map.on('click', onMapClick);
-    map.on('zoomend', () => updateObject('All')); 
-    map.on('moveend', () => updateObject('All'));
+    // map.on('zoomend', () => updateObject('All'));
+    // map.on('moveend', () => updateObject('All'));
 }
 
 function promptForLocation() {
@@ -107,16 +117,24 @@ function updateUserLocationCircleSize() {
     }
 }
 
+async function requestAPI() { 
+    try {
+        const response = await fetch('.gitignore/config.json');
+        OPENROUTE_API_KEY = await response.json();
+    } catch (error) {
+        console.error('Error fetching quotes:', error);
+    }
+}
+
 function onMapClick(e) {
     if (!isSearching && loaded) {
-        
+
         const [snappedLat, snappedLon] = snapToNearestEdge(e.latlng.lat, e.latlng.lng);
         startingNode = {
             lat: snappedLat,
             lon: snappedLon
         };
         addWaypoint(L.latLng(snappedLat, snappedLon));
-        fetchData();
     }
 }
 
@@ -147,10 +165,10 @@ function addWaypoint(latlng) {
         // Draw a line between the last two waypoints
 
 
-        // LETS DO THIS LATER 
-        // createPath([waypoints[waypoints.length - 2], snappedLatLng])
+        // LETS DO THIS LATER
+        createPath([waypoints[waypoints.length - 2], snappedLatLng])
 
-        L.polyline([waypoints[waypoints.length - 2], snappedLatLng], { color: 'red' }).addTo(map);
+        // L.polyline([waypoints[waypoints.length - 2], snappedLatLng], { color: 'red' }).addTo(map);
     }
 
     updateDistanceAndElevation();
@@ -217,7 +235,7 @@ function toggleFullscreen() {
     } else {
         if (document.exitFullscreen) {
             document.exitFullscreen();
-        } 
+        }
     }
 }
 
@@ -681,7 +699,7 @@ async function fetchData() {
             time)
         totalTime = Number(totalTime.toFixed(5))
         console.log("Loaded in ", totalTime, " Seconds. ")
-        loaded = true; 
+        loaded = true;
     } catch (error) {
         console.error('Error fetching road data:', error);
     }
@@ -731,6 +749,43 @@ function findShortestPath(startNodeID, endNodeID) {
     return path;
 }
 
+function createRoute(waypoints) {
+    console.log("Waypoint 1: " + waypoints[0].toString())
+    console.log("-------------------------------")
+    console.log("Waypoint 2: " + waypoints[1].toString())
+
+    const url = `https://api.openrouteservice.org/v2/directions/foot-walking?api_key=${OPENROUTE_API_KEY}&start=${start.lng},${start.lat}&end=${end.lng},${end.lat}`;
+
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            const route = data.features[0].geometry.coordinates;
+            drawRoute(route);
+            updateDistance(data.features[0].properties.summary.distance);
+        })
+        .catch(error => {
+            console.error('Error fetching route:', error);
+        });
+    
+}
+
+async function getRoute(start, end) {
+    try {
+        const response = await axios.get(`https://api.openrouteservice.org/v2/directions/foot-walking?api_key=${OPENROUTE_API_KEY}&start=${start.lng},${start.lat}&end=${end.lng},${end.lat}`);
+        const route = response.data.features[0].geometry.coordinates;
+        drawRoute(route);
+        updateDistance(response.data.features[0].properties.summary.distance);
+    } catch (error) {
+        console.error('Error fetching route:', error);
+    }
+}
+
+
 function createPath(waypoints) {
     console.log("Waypoint 1: " + waypoints[0].toString())
     console.log("-------------------------------")
@@ -765,9 +820,12 @@ function createPath(waypoints) {
     console.log("Route created with the following coordinates:");
     console.log(routeCoordinates);
 
+    if (routeLayer) {
+        map.removeLayer(routeLayer);
+    }
+    routeLayer = L.polyline(routeCoordinates, { color: 'red', weight: 3 }).addTo(map);
 
     return routeCoordinates;
-    // Implement route creation logic here
 }
 
 function findNearestNode(point, graph) {
@@ -786,14 +844,64 @@ function findNearestNode(point, graph) {
     return nearestNode;
 }
 
+function findShortestPath(startNodeId, endNodeId) {
+    const distances = {};
+    const previous = {};
+    const unvisited = new Set(Object.keys(graph.nodes));
+
+    // Initialize distances
+    for (const nodeId in graph.nodes) {
+        distances[nodeId] = nodeId === startNodeId ? 0 : Infinity;
+    }
+
+    while (unvisited.size > 0) {
+        const current = Array.from(unvisited).reduce((minNode, node) =>
+            distances[node] < distances[minNode] ? node : minNode
+        );
+
+        if (current === endNodeId) break;
+
+        unvisited.delete(current);
+
+        if (!graph.edges[current]) continue;
+
+        for (const edge of graph.edges[current]) {
+            const neighbor = edge.to;
+            const alt = distances[current] + edge.distance;
+            if (alt < distances[neighbor]) {
+                distances[neighbor] = alt;
+                previous[neighbor] = current;
+            }
+        }
+    }
+
+    if (distances[endNodeId] === Infinity) {
+        return null; // No path found
+    }
+
+    // Reconstruct the path
+    const path = [];
+    let current = endNodeId;
+    while (current !== startNodeId) {
+        path.unshift(current);
+        current = previous[current];
+    }
+    path.unshift(startNodeId);
+
+    return path;
+}
+
+//Example usage (assuming graph, map, routeLayer, and haversineDistance are defined elsewhere)
+//let waypoints = [{lat:34.0522, lng:-118.2437}, {lat:37.7749, lng:-122.4194}]
+//createPath(waypoints);
+
+
 // Keeps track of filters
 function initFilters() {
 
-    satelliteLayer =
-        L.tileLayer(
-            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping,Aerogrid,IGN,IGP,UPR - EGP,and the GIS User Community '
-        });
+    satelliteLayer = L.tileLayer('https://api.maptiler.com/tiles/satellite/{z}/{x}/{y}.jpg?key=YOUR_MAPTILER_API_KEY', {
+        attribution: '© MapTiler'
+    });
 
     bathroomLayer = L.layerGroup().addTo(map);
     trafficLightLayer = L.layerGroup().addTo(map);
@@ -802,31 +910,33 @@ function initFilters() {
     document.getElementById('showBathrooms').checked = true;
     document.getElementById('showTrafficLights').checked = true;
 
-    toggleSatelliteView.call(document.getElementById('satelliteView'));
-    toggleBathrooms.call(document.getElementById('showBathrooms'));
-    toggleTrafficLights.call(document.getElementById('showTrafficLights'));
+    updateObject(); 
 
-   }
+}
 
 function toggleSatelliteView() {
-    if (this.checked) {
+    let satelliteCheckbox = document.getElementById('satelliteView');
+    console.log('Satellite view checked:', satelliteCheckbox.checked);
+
+    if (satelliteCheckbox.checked) {
+        map.removeLayer(osmLayer);
         map.addLayer(satelliteLayer);
     } else {
         map.removeLayer(satelliteLayer);
+        map.addLayer(osmLayer);
     }
 }
-
+// WORK ON BATHROOM AND TAFFIC LIGHTS
 function toggleBathrooms() {
-    if (this.checked) {
+    if (document.getElementById('showBathrooms').checked) {
         map.addLayer(bathroomLayer);
     } else {
         map.removeLayer(bathroomLayer);
     }
 }
 
-function toggleTrafficLights() {
-    if (this.checked) {
-
+function toggleTrafficLights(event) {
+    if (document.getElementById('showTrafficLights').checked) {
         map.addLayer(trafficLightLayer);
     } else {
         map.removeLayer(trafficLightLayer);
@@ -912,14 +1022,16 @@ async function updateObject(object) {
 
     // If the zoom is too big just remove everything
     console.log("Zoom:" + zoom)
-    
-    if (zoom < 11) {
-        bathroomLayer.clearLayers();
-        trafficLightLayer.clearLayers();
-        bathroomMarkers.clear();
-        trafficLightMarkers.clear();
-        return;
-    }
+    console.log("UPDATED OBJECTS")
+
+    // Implement this later 
+    // if (zoom < 11) {
+    //     bathroomLayer.clearLayers();
+    //     trafficLightLayer.clearLayers();
+    //     bathroomMarkers.clear();
+    //     trafficLightMarkers.clear();
+    //     return;
+    // }
 
     // BATHROOMS
     if (object === "Bathroom" || object === "All") {
@@ -979,58 +1091,33 @@ function updateMarkers(objects, markerMap, layer, type) {
     });
 }
 
-
-// Update the existing filterObjects function
-// function filterObjects(objects, path) {
-//     const thresholdDistance = 100; // Meters
-//     const filteredObjects = [];
-
-//     objects.forEach(function (object) {
-//         let shouldAdd = true;
-//         filteredObjects.forEach(function (filteredObject) {
-//             const distance = haversineDistance(
-//                 filteredObject.lat,
-//                 filteredObject.lon,
-//                 object.lat,
-//                 object.lon
-//             ) * 1000; // Convert km to meters
-
-//             if (distance < thresholdDistance) {
-//                 shouldAdd = false;
-//             }
-//         });
-//         if (shouldAdd) {
-//             filteredObjects.push(object);
-//         }
-//     });
-//     return filteredObjects;
-// }
-
-
 document.addEventListener('DOMContentLoaded', () => {
     initMap();
     fetchQuotes();
     initFilters();
+    requestAPI(); 
 
 
     // Keep track of instance variables usign a switch 
 
-    document.getElementById('showBathrooms').addEventListener('click', () => {
-        showBathroom = !showBathroom; 
-        updateObject('Bathroom'); 
-        console.log("DETECTED TOGGLE SWITCH ON BATHROOM")
-        // Need to update only those that are not loaded, don't reload already loaded objects
-        // Need to assing a boolean to each of the bathrooms and traffic lights according to ID 
-        // Probably using a map to store all these values 
-    });
+    // document.getElementById('showBathrooms').addEventListener('click', () => {
+    //     showBathroom = !showBathroom;
+    //     updateObject('Bathroom');
+    //     console.log("DETECTED TOGGLE SWITCH ON BATHROOM")
+    //     // Need to update only those that are not loaded, don't reload already loaded objects
+    //     // Need to assing a boolean to each of the bathrooms and traffic lights according to ID 
+    //     // Probably using a map to store all these values 
+    // });
 
-    document.getElementById('showTrafficLights').addEventListener('click', () => {
-        showTrafficLight = !showTrafficLight; 
-        updateObject('TrafficLight'); 
-        console.log("DETECTED TOGGLE SWITCH ON TRAFFIC LIGHT ")
+    // document.getElementById('showTrafficLights').addEventListener('click', () => {
+    //     showTrafficLight = !showTrafficLight;
+    //     updateObject('TrafficLight');
+    //     console.log("DETECTED TOGGLE SWITCH ON TRAFFIC LIGHT ")
 
-        // Need to implement the same thing.
-    }); 
+    //     // Need to implement the same thing.
+    // });
+    
+    
 
 
     document.getElementById('generateButton').addEventListener('click', () => {
@@ -1135,6 +1222,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Shows the filter tab when clicked
     document.addEventListener('click', function (event) {
         const selectWrapper = document.querySelector('.select-wrapper');
         const optionsContainer = document.getElementById('optionsContainer');
@@ -1144,6 +1232,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    
+    // Changes the check box
     const options = document.querySelectorAll('.option');
     options.forEach(option => {
         option.addEventListener('click', function (event) {
@@ -1155,4 +1245,18 @@ document.addEventListener('DOMContentLoaded', () => {
             event.stopPropagation();
         });
     });
+
+    // Traffic Light Toggle 
+    document.getElementById('showTrafficLights').addEventListener('click', () => {
+        toggleTrafficLights()
+    });
+
+    document.getElementById('showBathrooms').addEventListener('click', () => {
+        toggleBathrooms()
+    });
+
+    document.getElementById('satelliteView').addEventListener('click', () => {
+        toggleSatelliteView()
+    });
+   
 });
