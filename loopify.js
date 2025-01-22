@@ -1303,15 +1303,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }); 
 
 
-    document.getElementById('satelliteView').addEventListener('click', () => {
+    document.getElementById('satelliteView').addEventListener('click', (event) => {
         toggleSatelliteView()
-    });
-    
-    document.getElementById('satelliteView2').addEventListener('click', () => {
-        toggleSatelliteView()
+        event.stopPropagation();
     });
 
-    document.getElementById('satelliteView').addEventListener('dblclick', (event) => {
+
+    document.getElementById('satelliteView2').addEventListener('dblclick', (event) => {
         event.stopPropagation(); // Prevent double-click propagation
         console.log('Button double-clicked!');
     });
