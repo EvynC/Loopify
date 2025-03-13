@@ -28,29 +28,23 @@ let isLayerToggling = false;
 let isBathroomToggling = false;
 let isTrafficLightToggling = false;
 
-
 // Maps 
 let bathroomMarkers = new Map();
 let trafficLightMarkers = new Map();
 
+
 function initMap() {
-    
 
     map = L.map('map', {
         attributionControl: false
     }).setView([0, 0], 13,);
-    
+
     var attributionControl = L.control.attribution({
         position: 'bottomright',
         prefix: ''
     }).addTo(map);
 
     attributionControl.addAttribution('&copy; <a href="#" id="creditsLink">Loopify Credits</a>');
-    
-
-    // osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    //     attribution: '© OpenStreetMap contributors'
-    // }).addTo(map);
 
     osmLayer = L.tileLayer('http://{s}.google.com/vt?lyrs=m&x={x}&y={y}&z={z}', {
         maxZoom: 20,
@@ -80,9 +74,19 @@ function initMap() {
     map.on('moveend', () => updateObject('All'));
 }
 
+function initFilters() {
 
+    bathroomLayer = L.layerGroup().addTo(map);
+    trafficLightLayer = L.layerGroup().addTo(map);
+
+    document.getElementById('showBathrooms').checked = true;
+    document.getElementById('showTrafficLights').checked = true;
+
+    updateObject();
+}
 
 function promptForLocation() {
+    // Uses browser geolocation service
     if ("geolocation" in navigator) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -124,8 +128,8 @@ function promptForLocation() {
         fetchData();
     }
 }
-
 function addUserLocationCircle(latlng) {
+    // Controls the user location circle
     if (userLocationCircle) {
         map.removeLayer(userLocationCircle);
     }
@@ -140,16 +144,17 @@ function addUserLocationCircle(latlng) {
         radius: radius
     }).addTo(map);
 }
-
 function updateUserLocationCircleSize() {
+    // Location circle's scalibility
     if (userLocationCircle) {
         const zoom = map.getZoom();
         const radius = Math.max(2, zoom - 7);
         userLocationCircle.setRadius(radius);
     }
 }
-
+// MAY NOT NEED
 async function requestAPI() {
+    // MAY NOT NEED
     try {
         const response = await fetch('.gitignore/config.json');
         OPENROUTE_API_KEY = await response.json();
@@ -159,6 +164,7 @@ async function requestAPI() {
 }
 
 function onMapClick(e) {
+    // Called when the map is clicked
     if (!isSearching && loaded) {
 
         const [snappedLat, snappedLon] = snapToNearestEdge(e.latlng.lat, e.latlng.lng);
@@ -171,6 +177,7 @@ function onMapClick(e) {
 }
 
 function addWaypoint(latlng) {
+    // Snaps to the nearest edge and adds a waypoint
     const [snappedLat, snappedLon] = snapToNearestEdge(latlng.lat, latlng.lng);
     snappedLatLng = L.latLng(snappedLat, snappedLon);
 
@@ -210,6 +217,7 @@ function addWaypoint(latlng) {
 }
 
 function updateDistanceAndElevation() {
+    // self explanatory
     currentDistance = calculateTotalDistance();
     currentElevation = calculateMockElevation(currentDistance);
     updateDistanceDisplay();
@@ -276,7 +284,7 @@ function toggleFullscreen() {
 
 function relocateToOriginalPosition() {
     if (originalPosition) {
-        map.setView(originalPosition, 18);
+        map.setView(originalPosition, 17);
         addUserLocationCircle(originalPosition);
     }
 }
@@ -530,19 +538,29 @@ function toggleDropdown() {
 async function loadBathrooms() {
     isBathroomLoading = true;
     const bounds = map.getBounds();
-    const cacheKey = `bathrooms_${bounds.getSouth()}_${bounds.getWest()}_${bounds.getNorth()}_${bounds.getEast()}`
-    const cachedData = localStorage.getItem(cacheKey)
+    const cacheKey = `bathrooms_${bounds.getSouth()}_${bounds.getWest()}_${bounds.getNorth()}_${bounds.getEast()}`;
+    const cachedData = localStorage.getItem(cacheKey);
+
+    const startTime = performance.now();
 
     if (cachedData) {
-        const { data, timestamp } = JSON.parse(cachedData)
+        const { data, timestamp } = JSON.parse(cachedData);
         if (Date.now() - timestamp < CACHE_EXPIRATION) {
-            console.log("Using cached bathroom data")
-            bathrooms = data
+            console.log("Using cached bathroom data");
+            bathrooms = data;
         }
-    } else bathrooms = await fetchAndFilterObjects(
-        `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="toilets"](${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()});out;`,
-        './assets/Bathroom.png'
-    );
+    } else {
+        bathrooms = await fetchAndFilterObjects(
+            `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="toilets"](${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()});out;`,
+            './assets/Bathroom.png'
+        );
+
+        // Cache the fetched data
+        localStorage.setItem(cacheKey, JSON.stringify({ data: bathrooms, timestamp: Date.now() }));
+    }
+
+    const endTime = performance.now();
+    console.log(`Bathrooms loaded in ${(endTime - startTime).toFixed(2)} ms`);
 
     updateMarkers(bathrooms, bathroomMarkers, bathroomLayer, 'Bathroom');
     isBathroomLoading = false;
@@ -551,19 +569,30 @@ async function loadBathrooms() {
 async function loadTrafficLights() {
     isTrafficLightLoading = true;
     const bounds = map.getBounds();
-    const cacheKey = `lights_${bounds.getSouth()}_${bounds.getWest()}_${bounds.getNorth()}_${bounds.getEast()}`
-    const cachedData = localStorage.getItem(cacheKey)
+    const cacheKey = `lights_${bounds.getSouth()}_${bounds.getWest()}_${bounds.getNorth()}_${bounds.getEast()}`;
+    const cachedData = localStorage.getItem(cacheKey);
+
+    const startTime = performance.now();
 
     if (cachedData) {
-        const { data, timestamp } = JSON.parse(cachedData)
+        const { data, timestamp } = JSON.parse(cachedData);
         if (Date.now() - timestamp < CACHE_EXPIRATION) {
-            console.log("Using cached bathroom data")
-            lights = data
+            console.log("Using cached traffic light data");
+            lights = data;
         }
-    } else lights = await fetchAndFilterObjects(
-        `https://overpass-api.de/api/interpreter?data=[out:json];node["highway"="traffic_signals"](${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()});out;`,
-        './assets/TrafficLight.png'
-    );
+    } else {
+        lights = await fetchAndFilterObjects(
+            `https://overpass-api.de/api/interpreter?data=[out:json];node["highway"="traffic_signals"](${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()});out;`,
+            './assets/TrafficLight.png'
+        );
+
+        // Cache the fetched data
+        localStorage.setItem(cacheKey, JSON.stringify({ data: lights, timestamp: Date.now() }));
+    }
+
+    const endTime = performance.now();
+    console.log(`Traffic lights loaded in ${(endTime - startTime).toFixed(2)} ms`);
+
     updateMarkers(lights, trafficLightMarkers, trafficLightLayer, 'TrafficLight');
     isTrafficLightLoading = false;
 }
@@ -741,31 +770,21 @@ async function fetchData() {
         return;
     }
 
-    var d = new Date();
     try {
         graph = await fetchRoadData(bbox);
 
         if (Object.keys(graph.nodes).length === 0) {
-            throw new Error(
-                'No road data found in the selected area. Try moving the map or increasing the distance.'
-            );
+            throw new Error('No road data found in the selected area. Try moving the map or increasing the distance.');
         }
 
         // Cache the fetched data
         localStorage.setItem(cacheKey, JSON.stringify(graph));
 
-        console.log(
-            `Fetched ${Object.keys(graph.nodes).length} nodes and ${Object.keys(graph.edges).length} edges`
-        );
-        var time = (d.getMinutes() * 60) + d.getSeconds() + (d.getMilliseconds() / 1000);
-        var d = new Date();
-        var totalTime = (((d.getMinutes() * 60) + d.getSeconds() + (d.getMilliseconds() / 1000)) -
-            time)
-        totalTime = Number(totalTime.toFixed(5))
-        console.log("Loaded in ", totalTime, " Seconds. ")
+        console.log(`Fetched ${Object.keys(graph.nodes).length} nodes and ${Object.keys(graph.edges).length} edges`);
         loaded = true;
     } catch (error) {
         console.error('Error fetching road data:', error);
+        alert('Error fetching road data. Please try again.');
     }
 }
 
@@ -917,16 +936,7 @@ function findShortestPath(startNodeId, endNodeId) {
 
 
 // Keeps track of filters
-function initFilters() {
 
-    bathroomLayer = L.layerGroup().addTo(map);
-    trafficLightLayer = L.layerGroup().addTo(map);
-
-    document.getElementById('showBathrooms').checked = true;
-    document.getElementById('showTrafficLights').checked = true;
-
-    updateObject();
-}
 
 function toggleSatelliteView() {
     const satelliteCheckbox = document.getElementById('satelliteView');
@@ -960,68 +970,34 @@ function toggleSatelliteView() {
         satelliteCheckbox.disabled = false; // Re-enable checkbox
     }, 300); // Allow time for layers to settle
 }
-// WORK ON BATHROOM AND TAFFIC LIGHTS
 
-function toggleBathrooms() {
-    if (isBathroomToggling || isTrafficLightToggling) return; // Prevent toggling during ongoing operation
-    isBathroomToggling = true;
+function toggleLayer(layer, isLoading, loadFunction, markers, layerGroup) {
+    if (isLoading) return;
 
-    const showBathroomsCheckbox = document.getElementById('showBathrooms');
-    const isChecked = showBathroomsCheckbox.checked;
+    const isChecked = document.getElementById(layer).checked;
 
     if (isChecked) {
-        if (isBathroomLoading) {
-            console.log("Bathrooms are still loading...");
-        } else if (bathroomMarkers.size === 0) {
-            loadBathrooms();
+        if (markers.size === 0) {
+            loadFunction();
         }
-        if (!map.hasLayer(bathroomLayer)) {
-            map.addLayer(bathroomLayer);
+        if (!map.hasLayer(layerGroup)) {
+            map.addLayer(layerGroup);
         }
     } else {
-        if (map.hasLayer(bathroomLayer)) {
-            map.removeLayer(bathroomLayer);
+        if (map.hasLayer(layerGroup)) {
+            map.removeLayer(layerGroup);
         }
-        bathroomLayer.clearLayers();
-        bathroomMarkers.clear();
+        layerGroup.clearLayers();
+        markers.clear();
     }
-
-    // Reset the toggle state after operation
-    setTimeout(() => {
-        isBathroomToggling = false;
-    }, 300); // Adjust the debounce time as needed
 }
 
 function toggleTrafficLights() {
-    if (isTrafficLightToggling || isBathroomToggling) return; // Prevent toggling during ongoing operation
-    isTrafficLightToggling = true;
+    toggleLayer('showTrafficLights', isTrafficLightLoading, loadTrafficLights, trafficLightMarkers, trafficLightLayer);
+}
 
-    const showTrafficLightsCheckbox = document.getElementById('showTrafficLights');
-    const isChecked = showTrafficLightsCheckbox.checked;
-
-
-
-    if (isChecked) {
-        if (isTrafficLightLoading) {
-            console.log("Traffic Lights are still loading...");
-        } else if (trafficLightMarkers.size === 0) {
-            loadTrafficLights();
-        }
-        if (!map.hasLayer(trafficLightLayer)) {
-            map.addLayer(trafficLightLayer);
-        }
-    } else {
-        if (map.hasLayer(trafficLightLayer)) {
-            map.removeLayer(trafficLightLayer);
-        }
-        trafficLightLayer.clearLayers();
-        trafficLightMarkers.clear();
-    }
-
-    // Reset the toggle state after operation
-    setTimeout(() => {
-        isTrafficLightToggling = false;
-    }, 300); // Adjust the debounce time as needed
+function toggleBathrooms() {
+    toggleLayer('showBathrooms', isBathroomLoading, loadBathrooms, bathroomMarkers, bathroomLayer);
 }
 
 async function updateObject(object) {
@@ -1096,12 +1072,44 @@ document.addEventListener('DOMContentLoaded', () => {
     initMap();
     fetchQuotes();
     initFilters();
-    requestAPI();
+    // requestAPI(); Not in use
 
-    document.getElementById('generateButton').addEventListener('click', () => {
-        const distance = parseFloat(document.getElementById('distanceInput').value);
-        if (isNaN(distance) || distance <= 0) {
-            alert('Please enter a valid distance.');
+    // Synchronize the state of the satellite view checkbox with the current layer
+    const satelliteCheckbox = document.getElementById('satelliteView');
+    if (map.hasLayer(satelliteLayer)) {
+        satelliteCheckbox.checked = true;
+    } else {
+        satelliteCheckbox.checked = false;
+    }
+
+    // Synchronize the state of the bathroom checkbox with the current layer
+    const bathroomCheckbox = document.getElementById('showBathrooms');
+    if (map.hasLayer(bathroomLayer)) {
+        bathroomCheckbox.checked = true;
+    } else {
+        bathroomCheckbox.checked = false;
+    }
+
+    // Synchronize the state of the traffic light checkbox with the current layer
+    const trafficLightCheckbox = document.getElementById('showTrafficLights');
+    if (map.hasLayer(trafficLightLayer)) {
+        trafficLightCheckbox.checked = true;
+    } else {
+        trafficLightCheckbox.checked = false;
+    }
+
+    document.getElementById('generateButton').addEventListener('click', (event) => {
+        event.stopPropagation();
+        let distance = parseFloat(document.getElementById('distanceInput').value);
+        if (currentUnit === 'mi') {
+            distance *= kmConstant;
+        }
+
+        if (distance <= 0) {
+            alert('Please enter a positive distance.');
+            return;
+        } else if (distance > 100) {
+            alert('Please enter a distance less than 100 km.');
             return;
         }
 
@@ -1109,17 +1117,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('unitToggle').addEventListener('click', (e) => {
+        e.stopPropagation();
         if (e.target.classList.contains('unit-option'))
             toggleUnit(e.target.dataset.unit);
     });
 
-    document.getElementById('clearButton').addEventListener('click', clearRoute);
+    document.getElementById('clearButton').addEventListener('click', (event) => {
+        event.stopPropagation();
+        clearRoute();
+    });
 
-    document.getElementById('quoteContainer').addEventListener('click', displayRandomQuote);
+    document.getElementById('quoteContainer').addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (quotes.length > 0) {
+            displayRandomQuote();
+        } else {
+            console.error('Quotes array is empty.');
+        }
+    });
 
     document.getElementById('fullscreenButton').addEventListener('click', (event) => {
-        toggleFullscreen();
         event.stopPropagation();
+        toggleFullscreen();
     });
 
     document.getElementById('fullscreenButton').addEventListener('dblclick', (event) => {
@@ -1127,10 +1146,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Button double-clicked!');
     });
 
-
     document.getElementById('relocateButton').addEventListener('click', (event) => {
-        relocateToOriginalPosition();
         event.stopPropagation();
+        relocateToOriginalPosition();
     });
 
     document.getElementById('relocateButton').addEventListener('dblclick', (event) => {
@@ -1138,21 +1156,23 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Button double-clicked!');
     });
 
-    document.getElementById('searchInput').addEventListener('input', () => {
+    document.getElementById('searchInput').addEventListener('input', (event) => {
+        event.stopPropagation();
         clearTimeout(autocompleteTimeout);
         autocompleteTimeout = setTimeout(searchLocation, 300);
     });
 
     document.getElementById('searchInput').addEventListener('keydown', function (event) {
+        event.stopPropagation();
         if (event.key === "Enter") {
             searchLocation(); // Call the searchLocation function
             console.log("Searching location..."); // Fixing console log
         }
-    }); // THiS IS NO WORK 
+    });
 
     document.getElementById('searchButton').addEventListener('click', (event) => {
-        searchLocation()
-        event.stopPropagation()
+        event.stopPropagation();
+        searchLocation();
     });
 
     document.addEventListener('click', (event) => {
@@ -1163,8 +1183,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('undoButton').addEventListener('click', (event) => {
-        undo()
         event.stopPropagation();
+        undo();
     });
 
     document.getElementById('undoButton').addEventListener('dblclick', (event) => {
@@ -1172,17 +1192,15 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Button double-clicked!');
     });
 
-
     document.getElementById('redoButton').addEventListener('click', (event) => {
-        redo()
         event.stopPropagation();
+        redo();
     });
 
     document.getElementById('redoButton').addEventListener('dblclick', (event) => {
         event.stopPropagation(); // Prevent double-click propagation
         console.log('Button double-clicked!');
     });
-
 
     document.addEventListener('keydown', (e) => {
         if (e.ctrlKey && e.key === 'z') {
@@ -1200,10 +1218,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     termsLink.addEventListener('click', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         termsDialog.style.display = 'flex';
     });
 
-    closeButton.addEventListener('click', () => {
+    closeButton.addEventListener('click', (event) => {
+        event.stopPropagation();
         termsDialog.style.display = 'none';
     });
 
@@ -1219,10 +1239,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     creditsLink.addEventListener('click', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         creditsDialog.style.display = 'flex';
     });
 
-    closeButton2.addEventListener('click', () => {
+    closeButton2.addEventListener('click', (event) => {
+        event.stopPropagation();
         creditsDialog.style.display = 'none';
     });
 
@@ -1232,20 +1254,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-
-    document.getElementById('uploadButton').addEventListener('click', () => {
+    document.getElementById('uploadButton').addEventListener('click', (event) => {
+        event.stopPropagation();
         alert('Upload functionality is not implemented yet.');
     });
 
-    document.getElementById('downloadButton').addEventListener('click', () => {
+    document.getElementById('downloadButton').addEventListener('click', (event) => {
+        event.stopPropagation();
         alert('Download functionality is not implemented yet.');
     });
 
-    document.getElementById('shareButton').addEventListener('click', () => {
+    document.getElementById('shareButton').addEventListener('click', (event) => {
+        event.stopPropagation();
         alert('Share functionality is not implemented yet.');
     });
 
-    document.getElementById('distanceInput').addEventListener("change", () => {
+    document.getElementById('distanceInput').addEventListener("change", (event) => {
+        event.stopPropagation();
         let distance = parseFloat(document.getElementById('distanceInput').value);
         if (currentUnit === "mi") {
             distance *= kmConstant;
@@ -1257,7 +1282,6 @@ document.addEventListener('DOMContentLoaded', () => {
             previousDistance = distance;
         }
     });
-
 
     // Shows the filter tab when clicked
     document.addEventListener('click', function (event) {
@@ -1276,8 +1300,7 @@ document.addEventListener('DOMContentLoaded', () => {
         option.addEventListener('click', function (event) {
             event.stopPropagation();
             const checkbox = this.querySelector('input[type="checkbox"]');
-            if (event.target !== checkbox && event.target !== checkbox
-                .nextElementSibling) {
+            if (event.target !== checkbox && event.target !== checkbox.nextElementSibling) {
                 if (isLayerToggling || isTrafficLightToggling || isBathroomToggling)
                     return;
                 checkbox.checked = !checkbox.checked;
@@ -1287,42 +1310,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Traffic Light Toggle 
     document.getElementById('showTrafficLights').addEventListener('click', (event) => {
-        toggleTrafficLights()
+        event.stopPropagation();
+        toggleTrafficLights();
     });
 
     document.getElementById('showTrafficLights2').addEventListener('click', (event) => {
-        toggleTrafficLights()
+        event.stopPropagation();
+        toggleTrafficLights();
     });
 
     document.getElementById('showBathrooms').addEventListener('click', (event) => {
-        toggleBathrooms()
+        event.stopPropagation();
+        toggleBathrooms();
+        updateObject('Bathroom'); // Update immediately
     });
 
     document.getElementById('showBathrooms2').addEventListener('dblclick', (event) => {
         event.stopPropagation();
-    }); 
-
-
-    document.getElementById('satelliteView').addEventListener('click', (event) => {
-        toggleSatelliteView()
-        event.stopPropagation();
     });
 
+    document.getElementById('satelliteView').addEventListener('click', (event) => {
+        event.stopPropagation();
+        toggleSatelliteView();
+    });
 
     document.getElementById('satelliteView2').addEventListener('dblclick', (event) => {
         event.stopPropagation(); // Prevent double-click propagation
         console.log('Button double-clicked!');
     });
 
-    // document.getElementById('map-info').addEventListener('click', (event) => {
-    //     // toggleUnit(e.target.dataset.unit);
+    // Prevent click through on search input and autocomplete results
+    document.getElementById('searchInput').addEventListener('click', (event) => {
+        event.stopPropagation();
+    });
 
-    //     event.stopPropagation(); 
-    // }); 
+    document.getElementById('autocompleteResults').addEventListener('click', (event) => {
+        event.stopPropagation();
+    });
 
-
-    //_________________________________________
-
-
-
-}); 
+    // Prevent click through on filter dropdown
+    document.querySelector('.select-wrapper').addEventListener('click', (event) => {
+        event.stopPropagation();
+    });
+});

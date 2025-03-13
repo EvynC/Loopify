@@ -17,6 +17,10 @@ main {
     overflow: hidden;
 }
 
+* {
+    font-weight: bold !important;
+}
+
 /* ----------------------- */
 
 /* MAP */
@@ -361,10 +365,11 @@ main {
 }
 
 #title {
-    font-size: 2.5rem;
+    font-size: 3rem;
     font-weight: 700;
     color: #4caf50;
     margin: 0;
+    margin-left:1.5rem;
 }
 
 #logo {
