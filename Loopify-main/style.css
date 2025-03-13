@@ -1,0 +1,709 @@
+/* MAIN FILE */
+body,
+html {
+    margin: 0;
+    padding: 0;
+    font-family: "Dosis", sans-serif;
+    font-weight: bold;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-size: 16px;
+}
+
+main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+* {
+    font-weight: bold !important;
+}
+
+/* ----------------------- */
+
+/* MAP */
+#map {
+    flex: 1;
+    position: relative;
+}
+
+.map-info {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    z-index: 1000;
+    padding: 0.6rem;
+    box-sizing: border-box;
+    border-radius: 8px;
+    font-size: 1.5rem;
+    pointer-events: none;
+    font-family: "Dosis", sans-serif;
+    background-color: #4caf50;
+    color: white;
+}
+
+#layerButton,
+#undoButton,
+#redoButton,
+#fullscreenButton,
+#relocateButton {
+    position: absolute;
+    bottom: 25px;
+    z-index: 1000;
+    background-color: white;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    padding: 6px;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#undoButton {
+    right: 148px;
+}
+
+#redoButton {
+    right: 102px;
+}
+
+#relocateButton {
+    right: 56px;
+}
+
+#fullscreenButton {
+    right: 10px;
+}
+
+#layerButton {
+    right: 10px;
+    bottom: 71px;  
+}
+
+#layerButton:hover,
+#undoButton:hover,
+#redoButton:hover,
+#fullscreenButton:hover,
+#relocateButton:hover {
+    background-color: #f4f4f4;
+}
+
+#layerButton img, 
+#undoButton img,
+#redoButton img,
+#fullscreenButton img,
+#relocateButton img {
+    width: 30px;
+    height: 30px;
+}
+
+#actualDistance {
+    margin-bottom: 4px;
+    text-align: center;
+}
+
+#elevation {
+    text-align: center;
+}
+
+.display-seperator {
+    width: 100%;
+    height: 1px;
+    background-color: #ced4da;
+    margin: 4px 0;
+}
+
+#searchContainer {
+    position: absolute;
+    top: 10px;
+    right: 20rem;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#searchInput {
+    padding: 0.5rem;
+    border: none;
+    border-radius: 8px 0 0 8px;
+    font-size: 1rem;
+    width: 200px;
+}
+
+#searchButton {
+    padding: 0.5rem 1rem;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 0 8px 8px 0;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+#searchButton:hover {
+    background-color: #45a049;
+}
+
+#autocompleteResults {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: white;
+    border: 1px solid #ced4da;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+}
+
+.autocomplete-item {
+    padding: 0.5rem;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.autocomplete-item:hover {
+    background-color: #f0f0f0;
+}
+
+.no-results {
+    padding: 0.5rem;
+    color: #721c24;
+    background-color: #f8d7da;
+    border-bottom: 1px solid #f5c6cb;
+    font-size: 1rem;
+}
+
+/* New styles for the dropdown menu */
+.select-wrapper {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    width: 200px;
+}
+
+.select-button {
+    background-color: #4caf50;
+    color: white;
+    padding: 12px 20px 12px 12px;
+    font-size: 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    width: 100%;
+    text-align: left;
+}
+
+.select-button:hover {
+    background-color: #45a049;
+}
+
+.select-arrow {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid white;
+    pointer-events: none;
+}
+
+.options-container {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: #f9f9f9;
+    border-radius: 0 0 4px 4px;
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.3s ease-out;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.options-container.show {
+    max-height: 300px;
+    transition: max-height 0.3s ease-in;
+}
+
+.option {
+    padding: 12px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.option:hover {
+    background-color: #e0e0e0;
+}
+
+.checkbox-wrapper-5 {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.checkbox-wrapper-5 .check {
+    --size: 20px;
+    position: relative;
+    background: linear-gradient(90deg, #f19af3, #f099b5);
+    line-height: 0;
+    perspective: 200px;
+    font-size: var(--size);
+}
+
+.checkbox-wrapper-5 .check input[type="checkbox"],
+.checkbox-wrapper-5 .check label,
+.checkbox-wrapper-5 .check label::before,
+.checkbox-wrapper-5 .check label::after,
+.checkbox-wrapper-5 .check {
+    appearance: none;
+    display: inline-block;
+    border-radius: var(--size);
+    border: 0;
+    transition: 0.35s ease-in-out;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+.checkbox-wrapper-5 .check label {
+    width: calc(2.2 * var(--size));
+    height: var(--size);
+    background: #d7d7d7;
+    overflow: hidden;
+}
+
+.checkbox-wrapper-5 .check input[type="checkbox"] {
+    position: absolute;
+    z-index: 1;
+    width: calc(0.8 * var(--size));
+    height: calc(0.8 * var(--size));
+    top: calc(0.1 * var(--size));
+    left: calc(0.1 * var(--size));
+    background: linear-gradient(45deg, #dedede, #ffffff);
+    box-shadow: 0 6px 7px rgba(0, 0, 0, 0.3);
+    outline: none;
+    margin: 0;
+}
+
+.checkbox-wrapper-5 .check input[type="checkbox"]:checked {
+    left: calc(1.3 * var(--size));
+}
+
+.checkbox-wrapper-5 .check input[type="checkbox"]:checked+label {
+    background: transparent;
+}
+
+.checkbox-wrapper-5 .check label::before,
+.checkbox-wrapper-5 .check label::after {
+    content: "· ·";
+    position: absolute;
+    overflow: hidden;
+    left: calc(0.15 * var(--size));
+    top: calc(0.5 * var(--size));
+    height: var(--size);
+    letter-spacing: calc(-0.04 * var(--size));
+    color: #9b9b9b;
+    font-family: "Times New Roman", serif;
+    z-index: 2;
+    font-size: calc(0.6 * var(--size));
+    border-radius: 0;
+    transform-origin: 0 0 calc(-0.5 * var(--size));
+    backface-visibility: hidden;
+}
+
+.checkbox-wrapper-5 .check label::after {
+    content: "●";
+    top: calc(0.65 * var(--size));
+    left: calc(0.2 * var(--size));
+    height: calc(0.1 * var(--size));
+    width: calc(0.35 * var(--size));
+    font-size: calc(0.2 * var(--size));
+    transform-origin: 0 0 calc(-0.4 * var(--size));
+}
+
+.checkbox-wrapper-5 .check input[type="checkbox"]:checked+label::before,
+.checkbox-wrapper-5 .check input[type="checkbox"]:checked+label::after {
+    left: calc(1.55 * var(--size));
+    top: calc(0.4 * var(--size));
+    line-height: calc(0.1 * var(--size));
+    transform: rotateY(360deg);
+}
+
+.checkbox-wrapper-5 .check input[type="checkbox"]:checked+label::after {
+    height: calc(0.16 * var(--size));
+    top: calc(0.55 * var(--size));
+    left: calc(1.6 * var(--size));
+    font-size: calc(0.6 * var(--size));
+    line-height: 0;
+}
+
+/* LEFT UI STUFF */
+
+.title-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.2rem;
+    font-family: "Nerko One", sans-serif;
+}
+
+#title {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #4caf50;
+    margin: 0;
+    margin-left:1.5rem;
+}
+
+#logo {
+    width: 50px;
+    height: 50px;
+    padding-right: 1rem;
+}
+
+#controls {
+    width: 280px;
+    padding: 1.2rem;
+    background-color: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow-y: auto;
+}
+
+.input-group {
+    display: flex;
+    width: 100%;
+    margin-bottom: 1.2rem;
+}
+
+input,
+button,
+select {
+    padding: 0.6rem;
+    box-sizing: border-box;
+    border-radius: 8px;
+    border: 1px solid #ced4da;
+    font-family: "Dosis", sans-serif;
+    font-size: 1rem;
+}
+
+input {
+    flex-grow: 1;
+    margin-right: 0.6rem;
+}
+
+button {
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+#unitToggle {
+    display: flex;
+    justify-content: space-between;
+    background-color: #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1.2rem;
+    width: 100%;
+    position: relative;
+    padding: 4px;
+}
+
+.unit-option {
+    flex: 1;
+    text-align: center;
+    padding: 0.6rem;
+    cursor: pointer;
+    transition: color 0.3s;
+    z-index: 1;
+    position: relative;
+    font-size: 1rem;
+}
+
+.unit-divider {
+    width: 2px;
+    background-color: #ced4da;
+    position: absolute;
+    top: 10%;
+    bottom: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+}
+
+.unit-option.active {
+    color: white;
+}
+
+.unit-slider {
+    position: absolute;
+    width: calc(50% - 10px);
+    height: calc(100% - 10px);
+    background-color: #4caf50;
+    transition: transform 0.3s ease-in-out;
+    border-radius: 6px;
+    top: 5px;
+    left: 5px;
+}
+
+#clearButton {
+    background-color: #dc3545;
+    width: 100%;
+    margin-bottom: 1.2rem;
+}
+
+#clearButton:hover {
+    background-color: #c82333;
+}
+
+#exportButtons {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    background-color: #f8f9fa;
+}
+
+.export-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 40px;
+    background-color: #4caf50;
+    cursor: pointer;
+}
+
+.export-button:hover {
+    background-color: #45a049;
+    transform: scale(1.1);
+}
+
+.export-button img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.footer-links {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: auto;
+    margin-bottom: -15px;
+    padding: 10px 0;
+    font-size: 0.75rem;
+    border-top: 1px solid #ced4da;
+}
+
+.footer-links a {
+    color: #c82333;
+    text-decoration: none;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+}
+
+.footer-links a:hover {
+    text-decoration: underline;
+}
+
+.footer-links .github-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+}
+
+#githubIcon {
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+}
+
+#creditsLink { 
+    font-size : 12px 
+}
+
+#termsDialog, #creditsDialog {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.dialog-content, .credits-content{
+    background-color: #fefefe;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.close, .close2 {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover, .close2:hover,
+.close:focus .close2:focus {
+    color: #000;
+    text-decoration: none;
+}
+
+.API-list { 
+    list-style-type : disc
+}
+
+#quoteContainer {
+    background-color: #e9ecef;
+    border-radius: 8px;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    max-height: 140px;
+    overflow-y: auto;
+}
+
+#quoteContainer:hover {
+    background-color: #dee2e6;
+}
+
+#quote {
+    font-style: italic;
+    margin-bottom: 0.3rem;
+    font-size: 0.8rem;
+}
+
+#author {
+    text-align: right;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.main-container {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+}
+
+.map-container {
+    flex: 1;
+    position: relative;
+}
+
+.controls-container {
+    width: 280px;
+    padding: 1.2rem;
+    background-color: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow-y: auto;
+}
+
+/* Media query for mobile devices */
+@media (max-width: 768px) {
+    .main-container {
+        flex-direction: column;
+        height: auto;
+        width: auto;
+    }
+
+    .map-container {
+        height: 60vh;
+        width: 100%;
+        order: -1;
+        /* This puts the map on top */
+    }
+
+    .controls-container {
+        width: auto;
+        height: auto;
+        order: 1;
+        /* This puts the controls below the map */
+    }
+
+    /* Adjust other elements for mobile */
+    #searchContainer {
+        top: 10px;
+        right: 1rem;
+        left: 10px;
+        width: 70px;
+    }
+
+    .select-wrapper {
+        top: 60px;
+        right: 10px;
+        width: auto;
+    }
+
+    #mapControls {
+        bottom: 70px;
+    }
+
+    .map-info {
+        padding: 0.4rem;
+        font-size: 1rem;
+    }
+
+    /* Adjust the controls layout for mobile */
+    .input-group,
+    #unitToggle,
+    #clearButton,
+    #quoteContainer {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 0.6rem;
+    }
+
+    .export-button {
+        width: 36px;
+        height: 36px;
+    }
+
+    .export-button img {
+        width: 18px;
+        height: 18px;
+    }
+}
