@@ -432,6 +432,7 @@ button:hover {
     width: 100%;
     position: relative;
     padding: 4px;
+    box-sizing: border-box; /* Add this line */
 }
 
 .unit-option {
@@ -443,6 +444,7 @@ button:hover {
     z-index: 1;
     position: relative;
     font-size: 1rem;
+    box-sizing: border-box; /* Add this line */
 }
 
 .unit-divider {
@@ -462,13 +464,13 @@ button:hover {
 
 .unit-slider {
     position: absolute;
-    width: calc(50% - 10px);
-    height: calc(100% - 10px);
+    width: calc(50% - 8px); /* Adjusted to match the padding */
+    height: calc(100% - 8px); /* Adjusted to match the padding */
     background-color: #4caf50;
     transition: transform 0.3s ease-in-out;
     border-radius: 6px;
-    top: 5px;
-    left: 5px;
+    top: 4px; /* Adjusted to match the padding */
+    left: 4px; /* Adjusted to match the padding */
 }
 
 #clearButton {

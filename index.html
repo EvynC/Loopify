@@ -21,7 +21,6 @@
         <link
             href="https://fonts.googleapis.com/css2?family=Nerko+One&display=swap"
             rel="stylesheet">
-    </head>
 
     <body>
         <main class="main-container">
@@ -35,7 +34,7 @@
                     <div class="input-group">
                         <input type="number" id="distanceInput"
                             placeholder="Enter distance" min="0.1" step="0.1"
-                            value="0.25"
+                            value="1"
                             onkeydown="return event.key !== 'e' && event.key !== 'E';">
                         <button id="generateButton">Generate</button>
                     </div>
@@ -226,6 +225,7 @@
             <script
                 src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
             <script src="loopify.js"></script>
-
+            <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+            <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
         </body>
     </html>

@@ -1,5 +1,5 @@
 // Instance Variables
-let map, userLocationCircle;
+let map, userLocationCircle, routingControl;
 let currentUnit = 'mi';
 let kmConstant = 1.60934;
 let waypoints = [];
@@ -22,7 +22,7 @@ let loaded = false;
 let satelliteLayer, osmLayer;
 let isBathroomLoading = false;
 let isTrafficLightLoading = false;
-const CACHE_EXPIRATION = 24 * 60 * 60 * 1000
+const CACHE_EXPIRATION = 24 * 60 * 60 * 1000;
 
 let isLayerToggling = false;
 let isBathroomToggling = false;
@@ -31,13 +31,56 @@ let isTrafficLightToggling = false;
 // Maps 
 let bathroomMarkers = new Map();
 let trafficLightMarkers = new Map();
+let debugBoundingBoxes = [];
+let startPoint = null;
+let endPoint = null;
 
+function drawBoundingBox(bbox, color) {
+    const rectangle = L.rectangle(bbox, {
+        color: color,
+        weight: 2,
+        fillOpacity: 0.1
+    }).addTo(map);
+    debugBoundingBoxes.push(rectangle);
+}
+
+function clearBoundingBoxes() {
+    debugBoundingBoxes.forEach(rectangle => map.removeLayer(rectangle));
+    debugBoundingBoxes = [];
+}
+
+function unloadFarBoundingBoxes() {
+    const bounds = map.getBounds();
+    const center = bounds.getCenter();
+    const maxDistance = 5000; // Maximum distance in meters to keep bounding boxes
+
+    debugBoundingBoxes = debugBoundingBoxes.filter(rectangle => {
+        const bboxCenter = rectangle.getBounds().getCenter();
+        const distance = map.distance(center, bboxCenter);
+        if (distance > maxDistance) {
+            map.removeLayer(rectangle);
+            return false;
+        }
+        return true;
+    });
+
+    // Check for overlapping bounding boxes
+    for (let i = 0; i < debugBoundingBoxes.length; i++) {
+        for (let j = i + 1; j < debugBoundingBoxes.length; j++) {
+            if (debugBoundingBoxes[i].getBounds().intersects(debugBoundingBoxes[j].getBounds())) {
+                map.removeLayer(debugBoundingBoxes[j]);
+                debugBoundingBoxes.splice(j, 1);
+                j--; // Adjust index after removal
+            }
+        }
+    }
+}
 
 function initMap() {
-
     map = L.map('map', {
-        attributionControl: false
-    }).setView([0, 0], 13,);
+        attributionControl: false,
+        maxZoom: 18 // Set maximum zoom level
+    }).setView([0, 0], 13);
 
     var attributionControl = L.control.attribution({
         position: 'bottomright',
@@ -50,7 +93,7 @@ function initMap() {
         maxZoom: 20,
         subdomains: ['mt0', 'mt1', 'mt2', 'mt3']
     });
-    osmLayer.addTo(map)
+    osmLayer.addTo(map);
 
     satelliteLayer = L.tileLayer('http://{s}.google.com/vt?lyrs=s,h&x={x}&y={y}&z={z}', {
         maxZoom: 20,
@@ -66,12 +109,30 @@ function initMap() {
 
     promptForLocation();
 
-
-
     map.on('zoomend', updateUserLocationCircleSize);
     map.on('click', onMapClick);
-    map.on('zoomend', () => updateObject('All'));
-    map.on('moveend', () => updateObject('All'));
+    map.on('zoomend', fetchData);
+    map.on('moveend', fetchData);
+
+    // Initialize Leaflet Routing Machine
+    routingControl = L.Routing.control({
+        waypoints: [],
+        routeWhileDragging: true,
+        createMarker: function(i, waypoint, n) {
+            const marker = L.marker(waypoint.latLng, {
+                draggable: true,
+                icon: L.icon({
+                    iconUrl: i === 0 ? 'start-icon.png' : (i === n - 1 ? 'end-icon.png' : 'waypoint-icon.png'),
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41]
+                })
+            });
+            return marker;
+        },
+        lineOptions: {
+            styles: [{ color: 'lightblue', weight: 4, opacity: 0.7 }]
+        }
+    }).addTo(map);
 }
 
 function initFilters() {
@@ -145,7 +206,7 @@ function addUserLocationCircle(latlng) {
     }).addTo(map);
 }
 function updateUserLocationCircleSize() {
-    // Location circle's scalibility
+    // Location circle's scalability
     if (userLocationCircle) {
         const zoom = map.getZoom();
         const radius = Math.max(2, zoom - 7);
@@ -166,52 +227,28 @@ async function requestAPI() {
 function onMapClick(e) {
     // Called when the map is clicked
     if (!isSearching && loaded) {
-
         const [snappedLat, snappedLon] = snapToNearestEdge(e.latlng.lat, e.latlng.lng);
-        startingNode = {
-            lat: snappedLat,
-            lon: snappedLon
-        };
-        addWaypoint(L.latLng(snappedLat, snappedLon));
+        const clickedPoint = L.latLng(snappedLat, snappedLon);
+
+        addWaypoint(clickedPoint);
+
+        // Add waypoints to the routing control
+        routingControl.setWaypoints(waypoints);
+    } else {
+        console.log('Please wait a second, data is still loading.');
     }
 }
 
 function addWaypoint(latlng) {
     // Snaps to the nearest edge and adds a waypoint
+
     const [snappedLat, snappedLon] = snapToNearestEdge(latlng.lat, latlng.lng);
     snappedLatLng = L.latLng(snappedLat, snappedLon);
 
     undoStack.push([...waypoints]);
     redoStack = [];
 
-    const newMarker = L.circleMarker(snappedLatLng, {
-        color: 'black',
-        fillColor: waypoints.length === 0 ? 'green' : 'red',
-        fillOpacity: 0.9,
-        radius: 10
-    }).addTo(map);
-
-    markers.push(newMarker);
     waypoints.push(snappedLatLng);
-
-    if (markers.length > 1) {
-        const previousMarker = markers[markers.length - 2];
-        if (previousMarker != markers[0]) {
-            previousMarker.setStyle({
-                color: 'black',
-                fillColor: 'blue',
-                radius: 8
-            });
-        }
-
-        // Draw a line between the last two waypoints
-
-
-        // LETS DO THIS LATER
-        createPath([waypoints[waypoints.length - 2], snappedLatLng])
-
-        // L.polyline([waypoints[waypoints.length - 2], snappedLatLng], { color: 'red' }).addTo(map);
-    }
 
     updateDistanceAndElevation();
 }
@@ -264,7 +301,7 @@ function toggleUnit(unit) {
         option.classList.toggle('active', option.dataset.unit === unit);
     });
     const slider = document.querySelector('.unit-slider');
-    slider.style.transform = unit === 'km' ? 'translateX(calc(100% + 13px))' : 'translateX(0)';
+    slider.style.transform = unit === 'km' ? 'translateX(calc(100% + 8px))' : 'translateX(0)';
     updateDistanceDisplay();
     updateElevationDisplay();
 }
@@ -747,124 +784,29 @@ let graph = null;
 let startingNode = null;
 
 async function fetchData() {
-    const distance = parseFloat(document.getElementById('distanceInput').value);
-    let center;
-
-    if (startingNode) {
-        center = L.latLng(startingNode.lat, startingNode.lon);
-    } else if (userLocationCircle) {
-        center = userLocationCircle.getLatLng();
-    } else {
-        center = map.getCenter();
-    }
-
-    const bbox = getBoundingBox(center.lat, center.lng, distance);
-    const cacheKey = `roadData_${bbox.join('_')}`;
-
-    // Check if data is in cache
-    const cachedData = localStorage.getItem(cacheKey);
-    if (cachedData) {
-        graph = JSON.parse(cachedData);
-        console.log('Using cached data');
-        loaded = true;
-        return;
-    }
+    const bounds = map.getBounds();
+    const bbox = [
+        [bounds.getSouth(), bounds.getWest()],
+        [bounds.getNorth(), bounds.getEast()]
+    ];
 
     try {
-        graph = await fetchRoadData(bbox);
+        const newGraph = await fetchRoadData(bbox);
+        graph = mergeGraphs(graph, newGraph);
 
         if (Object.keys(graph.nodes).length === 0) {
             throw new Error('No road data found in the selected area. Try moving the map or increasing the distance.');
         }
 
-        // Cache the fetched data
-        localStorage.setItem(cacheKey, JSON.stringify(graph));
-
         console.log(`Fetched ${Object.keys(graph.nodes).length} nodes and ${Object.keys(graph.edges).length} edges`);
         loaded = true;
+
+        // Unload far bounding boxes
+        unloadFarBoundingBoxes();
     } catch (error) {
         console.error('Error fetching road data:', error);
         alert('Error fetching road data. Please try again.');
     }
-}
-
-function createRoute(waypoints) {
-    console.log("Waypoint 1: " + waypoints[0].toString())
-    console.log("-------------------------------")
-    console.log("Waypoint 2: " + waypoints[1].toString())
-
-    const url = `https://api.openrouteservice.org/v2/directions/foot-walking?api_key=${OPENROUTE_API_KEY}&start=${start.lng},${start.lat}&end=${end.lng},${end.lat}`;
-
-    fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            const route = data.features[0].geometry.coordinates;
-            drawRoute(route);
-            updateDistance(data.features[0].properties.summary.distance);
-        })
-        .catch(error => {
-            console.error('Error fetching route:', error);
-        });
-
-}
-
-async function getRoute(start, end) {
-    try {
-        const response = await axios.get(`https://api.openrouteservice.org/v2/directions/foot-walking?api_key=${OPENROUTE_API_KEY}&start=${start.lng},${start.lat}&end=${end.lng},${end.lat}`);
-        const route = response.data.features[0].geometry.coordinates;
-        drawRoute(route);
-        updateDistance(response.data.features[0].properties.summary.distance);
-    } catch (error) {
-        console.error('Error fetching route:', error);
-    }
-}
-
-
-function createPath(waypoints) {
-    console.log("Waypoint 1: " + waypoints[0].toString())
-    console.log("-------------------------------")
-    console.log("Waypoint 2: " + waypoints[1].toString())
-
-    // Error Handeling
-    if (!graph || !graph.nodes || !graph.edges) {
-        console.error('Graph data is not available. Please fetch data first.');
-        return;
-    }
-
-    const startNode = findNearestNode(waypoint[0]);
-    const endNode = findNearestNode(waypoint[1]);
-
-    if (!startNode || !endNode) {
-        console.error('Unable to find suitable start or end nodes');
-        return;
-    }
-
-    const path = findShortestPath(startNode, endNode);
-
-    if (!path) {
-        console.error('No path found between the given points');
-        return;
-    }
-
-    const routeCoordinates = path.map(nodeId => {
-        const node = graph.nodes[nodeId];
-        return [node.lat, node.lon];
-    });
-
-    console.log("Route created with the following coordinates:");
-    console.log(routeCoordinates);
-
-    if (routeLayer) {
-        map.removeLayer(routeLayer);
-    }
-    routeLayer = L.polyline(routeCoordinates, { color: 'red', weight: 3 }).addTo(map);
-
-    return routeCoordinates;
 }
 
 function findNearestNode(point, graph) {
@@ -888,55 +830,105 @@ function findShortestPath(startNodeId, endNodeId) {
     const previous = {};
     const unvisited = new Set(Object.keys(graph.nodes));
 
-    // Initialize distances
-    for (const nodeId in graph.nodes) {
-        distances[nodeId] = nodeId === startNodeId ? 0 : Infinity;
-    }
+    Object.keys(graph.nodes).forEach(nodeId => { // set all to Inf distance and no previous 
+        distances[nodeId] = Infinity;
+        previous[nodeId] = null;
+    });
 
-    while (unvisited.size > 0) {
-        const current = Array.from(unvisited).reduce((minNode, node) =>
-            distances[node] < distances[minNode] ? node : minNode
-        );
+    distances[startNodeId] = 0; // Node A or start with 0 distance like in video
 
-        if (current === endNodeId) break;
+    console.log(unvisited.size)
 
-        unvisited.delete(current);
+    while (unvisited.size > 0) { // exit statement
 
-        if (!graph.edges[current]) continue;
+        // Getting closest Node
+        let currentNodeId = null;
+        let minDistance = Infinity;
 
-        for (const edge of graph.edges[current]) {
-            const neighbor = edge.to;
-            const alt = distances[current] + edge.distance;
-            if (alt < distances[neighbor]) {
-                distances[neighbor] = alt;
-                previous[neighbor] = current;
+        for (const nodeId of unvisited) {
+            if (distances[nodeId] < minDistance) {
+                minDistance = distances[nodeId];
+                currentNodeId = nodeId;
             }
         }
+
+        if (currentNodeId === null) {
+            console.log("rip") // WHY IS IT GOING HERE AND LEAVING
+            return null;
+        } else if (minDistance === Infinity) {
+            console.log("rip2") // WHY IS IT GOING HERE AND LEAVING
+            return null;
+        }
+
+        // If it found the end
+        // It goes backwards and reconstructs the path with pointers to previous nodes
+        if (currentNodeId === endNodeId) {
+            const path = [];
+            let currentNode = endNodeId;
+            while (currentNode) {
+                path.unshift(currentNode);
+                currentNode = previous[currentNode];
+            }
+            return path;
+        } 
+
+        unvisited.delete(currentNodeId);
+
+        // For each edge/node connected to the current node
+
+        graph.edges[currentNodeId].forEach(edge => {
+            const neighborNodeId = edge.to;
+            if (unvisited.has(neighborNodeId)) { // if it hasn't been visited
+                const alt = distances[currentNodeId] + edge.distance; // calculate the distance
+                if (alt < distances[neighborNodeId]) {  // if it's less than the current distance
+                    distances[neighborNodeId] = alt; // set the new distance
+                    previous[neighborNodeId] = currentNodeId; // set the previous node
+                }
+            }
+        });
     }
 
-    if (distances[endNodeId] === Infinity) {
-        return null; // No path found
-    }
-
-    // Reconstruct the path
-    const path = [];
-    let current = endNodeId;
-    while (current !== startNodeId) {
-        path.unshift(current);
-        current = previous[current];
-    }
-    path.unshift(startNodeId);
-
-    return path;
+    return null; // No path found
 }
 
-//Example usage (assuming graph, map, routeLayer, and haversineDistance are defined elsewhere)
-//let waypoints = [{lat:34.0522, lng:-118.2437}, {lat:37.7749, lng:-122.4194}]
-//createPath(waypoints);
+function drawPath(path) {
+    const latlngs = path.map(nodeId => {
+        const node = graph.nodes[nodeId];
+        return [node.lat, node.lon];
+    });
 
+    L.polyline(latlngs, {
+        color: 'red',
+        weight: 4,
+        opacity: 0.7
+    }).addTo(map);
+}
 
-// Keeps track of filters
+async function prefetchSurroundingAreas(center, distance) {
+    const offsets = [
+        [distance, 0],
+        [-distance, 0],
+        [0, distance],
+        [0, -distance],
+        [distance, distance],
+        [-distance, -distance],
+        [distance, -distance],
+        [-distance, distance]
+    ];
 
+    for (const offset of offsets) {
+        const newCenter = L.latLng(center.lat + offset[0], center.lng + offset[1]);
+        const bbox = getBoundingBox(newCenter.lat, newCenter.lng, distance);
+
+        try {
+            const newGraph = await fetchRoadData(bbox);
+            graph = mergeGraphs(graph, newGraph);
+            console.log(`Prefetched data for bbox: ${bbox}`);
+        } catch (error) {
+            console.error(`Error prefetching data for bbox: ${bbox}`, error);
+        }
+    }
+}
 
 function toggleSatelliteView() {
     const satelliteCheckbox = document.getElementById('satelliteView');
@@ -1068,6 +1060,56 @@ function updateMarkers(objects, markerMap, layer, type) {
     });
 }
 
+function onMapMove() {
+    const bounds = map.getBounds();
+    const center = bounds.getCenter();
+    const distance = parseFloat(document.getElementById('distanceInput').value);
+
+    const bbox = getBoundingBox(center.lat, center.lng, distance);
+
+    fetchRoadData(bbox).then((newGraph) => {
+        graph = mergeGraphs(graph, newGraph);
+        console.log('Data loaded for new area');
+        prefetchSurroundingAreas(center, distance);
+
+        // Unload far bounding boxes
+        unloadFarBoundingBoxes();
+    }).catch((error) => {
+        console.error('Error fetching data for new area', error);
+    });
+}
+
+function mergeGraphs(existingGraph, newGraph) {
+    if (!existingGraph) {
+        return newGraph;
+    }
+
+    const mergedGraph = {
+        nodes: { ...existingGraph.nodes },
+        edges: { ...existingGraph.edges }
+    };
+
+    Object.keys(newGraph.nodes).forEach(nodeId => {
+        if (!mergedGraph.nodes[nodeId]) {
+            mergedGraph.nodes[nodeId] = newGraph.nodes[nodeId];
+        }
+    });
+
+    Object.keys(newGraph.edges).forEach(nodeId => {
+        if (!mergedGraph.edges[nodeId]) {
+            mergedGraph.edges[nodeId] = newGraph.edges[nodeId];
+        } else {
+            newGraph.edges[nodeId].forEach(edge => {
+                if (!mergedGraph.edges[nodeId].some(e => e.to === edge.to)) {
+                    mergedGraph.edges[nodeId].push(edge);
+                }
+            });
+        }
+    });
+
+    return mergedGraph;
+}
+ 
 document.addEventListener('DOMContentLoaded', () => {
     initMap();
     fetchQuotes();
