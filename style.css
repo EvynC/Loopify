@@ -447,6 +447,16 @@ button:hover {
     box-sizing: border-box; /* Add this line */
 }
 
+.leaflet-routing-container {
+    display: none !important;
+}
+
+.custom-circle-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .unit-divider {
     width: 2px;
     background-color: #ced4da;

@@ -114,26 +114,68 @@ function initMap() {
     map.on('zoomend', fetchData);
     map.on('moveend', fetchData);
 
-    // Initialize Leaflet Routing Machine
+    // Initialize Leaflet Routing Machine without default markers
     routingControl = L.Routing.control({
         waypoints: [],
         routeWhileDragging: true,
-        createMarker: function(i, waypoint, n) {
-            const marker = L.marker(waypoint.latLng, {
+        createMarker: function (i, waypoint, n) {
+            // Create custom markers using the snapped points
+            let fillColor;
+            if (i === 0) {
+                fillColor = 'green'; // First waypoint
+            } else if (i === n - 1) {
+                fillColor = 'red'; // Last waypoint
+            } else {
+                fillColor = 'blue'; // Intermediate waypoints
+            }
+
+            return L.marker(waypoint.latLng, {
                 draggable: true,
-                icon: L.icon({
-                    iconUrl: i === 0 ? 'start-icon.png' : (i === n - 1 ? 'end-icon.png' : 'waypoint-icon.png'),
-                    iconSize: [25, 41],
-                    iconAnchor: [12, 41]
+                icon: L.divIcon({
+                    className: 'custom-circle-marker',
+                    html: `<div style="background-color: ${fillColor}; width: 16px; height: 16px; border-radius: 50%; border: 2px solid black;"></div>`,
+                    iconSize: [16, 16],
+                    iconAnchor: [8, 8]
                 })
+            }).on('dragend', function (e) {
+                const markerIndex = markers.indexOf(e.target);
+                if (markerIndex !== -1) {
+                    // Save the current state to the undo stack
+                    undoStack.push([...waypoints]);
+                    redoStack = []; // Clear the redo stack
+
+                    // Snap the dragged marker to the nearest road
+                    const draggedLatLng = e.target.getLatLng();
+                    const [snappedLat, snappedLon] = snapToNearestEdge(draggedLatLng.lat, draggedLatLng.lng);
+                    const snappedPoint = L.latLng(snappedLat, snappedLon);
+
+                    // Update the marker's position
+                    e.target.setLatLng(snappedPoint);
+
+                    // Update the waypoint's position in the array
+                    waypoints[markerIndex] = snappedPoint;
+
+                    // Update the routing machine with the new waypoints
+                    routingControl.setWaypoints(waypoints);
+                }
             });
-            return marker;
         },
         lineOptions: {
-            styles: [{ color: 'lightblue', weight: 4, opacity: 0.7 }]
-        }
+            styles: [{ color: '#0044cc', weight: 5, opacity: 0.8 }] // Darker blue line
+        },
+        show: false // disable the itinerary summary stuff (its ugly)
     }).addTo(map);
+
+    routingControl.on('routesfound', function (e) {
+        const routes = e.routes;
+        if (routes.length > 0) {
+            const totalDistance = routes[0].summary.totalDistance; // Distance in meters
+            updateDistanceSummary(totalDistance);
+        }
+    });
+
 }
+
 
 function initFilters() {
 
@@ -227,30 +269,197 @@ async function requestAPI() {
 function onMapClick(e) {
     // Called when the map is clicked
     if (!isSearching && loaded) {
+        // Snap the clicked point to the nearest road
         const [snappedLat, snappedLon] = snapToNearestEdge(e.latlng.lat, e.latlng.lng);
-        const clickedPoint = L.latLng(snappedLat, snappedLon);
+        const snappedPoint = L.latLng(snappedLat, snappedLon);
 
-        addWaypoint(clickedPoint);
+        // Add the snapped point as a waypoint
+        addWaypoint(snappedPoint);
 
-        // Add waypoints to the routing control
+        // Update the routing machine with the new waypoints
         routingControl.setWaypoints(waypoints);
     } else {
         console.log('Please wait a second, data is still loading.');
+        alert('Please wait a second, data is still loading.');
     }
 }
 
 function addWaypoint(latlng) {
-    // Snaps to the nearest edge and adds a waypoint
-
-    const [snappedLat, snappedLon] = snapToNearestEdge(latlng.lat, latlng.lng);
-    snappedLatLng = L.latLng(snappedLat, snappedLon);
-
+    // Save the current state to the undo stack
     undoStack.push([...waypoints]);
-    redoStack = [];
+    redoStack = []; // Clear the redo stack
 
-    waypoints.push(snappedLatLng);
+    // Snap the clicked point to the nearest road
+    const [snappedLat, snappedLon] = snapToNearestEdge(latlng.lat, latlng.lng);
+    const snappedPoint = L.latLng(snappedLat, snappedLon);
 
-    updateDistanceAndElevation();
+    // Add the snapped point to the waypoints array
+    waypoints.push(snappedPoint);
+
+    // Determine the color of the marker based on its position in the route
+    let fillColor;
+    if (waypoints.length === 1) {
+        fillColor = 'green'; // First waypoint
+    } else if (waypoints.length === waypoints.length) {
+        fillColor = 'red'; // Last waypoint
+    } else {
+        fillColor = 'blue'; // Intermediate waypoints
+    }
+
+    // Add a draggable marker styled as a circle
+    const marker = L.marker(snappedPoint, {
+        draggable: true,
+        icon: L.divIcon({
+            className: 'custom-circle-marker',
+            html: `<div style="background-color: ${fillColor}; width: 16px; height: 16px; border-radius: 50%; border: 2px solid black;"></div>`,
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+        })
+    }).addTo(map);
+
+    // Handle drag events
+    marker.on('dragend', function (e) {
+        console.log('Dragend event triggered for marker:', e.target);
+
+        const markerIndex = markers.indexOf(e.target); // Find the index of the dragged marker
+        console.log('Dragging ended. Marker index:', markerIndex);
+
+        if (markerIndex !== -1) {
+            // Save the current state to the undo stack
+            undoStack.push([...waypoints]);
+            redoStack = []; // Clear the redo stack
+            console.log('Undo stack updated:', undoStack);
+
+            // Snap the dragged marker to the nearest road
+            const draggedLatLng = e.target.getLatLng();
+            console.log('Dragged marker position:', draggedLatLng);
+
+            const [snappedLat, snappedLon] = snapToNearestEdge(draggedLatLng.lat, draggedLatLng.lng);
+            const snappedPoint = L.latLng(snappedLat, snappedLon);
+            console.log('Snapped marker position:', snappedPoint);
+
+            // Remove the old marker from the map and the markers array
+            console.log('Removing old marker:', e.target);
+            map.removeLayer(e.target); // Remove the old marker from the map
+            markers.splice(markerIndex, 1); // Remove the old marker from the markers array
+            console.log('Markers array after removal:', markers);
+
+            // Add the updated marker to the map and markers array
+            const updatedMarker = L.marker(snappedPoint, {
+                draggable: true,
+                icon: L.divIcon({
+                    className: 'custom-circle-marker',
+                    html: `<div style="background-color: blue; width: 16px; height: 16px; border-radius: 50%; border: 2px solid black;"></div>`,
+                    iconSize: [16, 16],
+                    iconAnchor: [8, 8]
+                })
+            }).addTo(map);
+            console.log('Added updated marker:', updatedMarker);
+
+            // Add dragend event to the updated marker
+            updatedMarker.on('dragend', function (e) {
+                console.log('Updated marker dragged again.');
+                marker.on('dragend', e);
+            });
+
+            // Update the waypoint's position in the array
+            waypoints[markerIndex] = snappedPoint;
+            console.log('Waypoints array after update:', waypoints);
+
+            // Add the updated marker to the markers array
+            markers.splice(markerIndex, 0, updatedMarker);
+            console.log('Markers array after adding updated marker:', markers);
+
+            // Update the routing machine with the new waypoints
+            routingControl.setWaypoints(waypoints);
+            console.log('Routing machine updated with new waypoints.');
+
+            // Ensure no duplicate markers exist
+            updateMarkerColors();
+            console.log('Marker colors updated.');
+        } else {
+            console.log('Marker not found in the markers array.');
+        }
+    });
+
+    // Store the marker for future reference
+    markers.push(marker);
+
+    // Update the colors of all markers to ensure the first is green, the last is red, and others are blue
+    updateMarkerColors();
+
+    // Update the routing machine with the new waypoints
+    routingControl.setWaypoints(waypoints);
+}
+
+function updateMarkerColors() {
+    markers.forEach((marker, index) => {
+        let fillColor;
+        if (index === 0) {
+            fillColor = 'green'; // First waypoint
+        } else if (index === markers.length - 1) {
+            fillColor = 'red'; // Last waypoint
+        } else {
+            fillColor = 'blue'; // Intermediate waypoints
+        }
+
+        const icon = L.divIcon({
+            className: 'custom-circle-marker',
+            html: `<div style="background-color: ${fillColor}; width: 16px; height: 16px; border-radius: 50%; border: 2px solid black;"></div>`,
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+        });
+
+        marker.setIcon(icon);
+    });
+}
+
+function snapToNearestEdge(lat, lon) {
+    let nearestEdge = null;
+    let minDistance = Infinity;
+    let nearestPoint = [lat, lon];
+
+    Object.values(graph.edges).forEach(edgeList => {
+        edgeList.forEach(edge => {
+            const fromNode = graph.nodes[edge.from];
+            const toNode = graph.nodes[edge.to];
+
+            if (fromNode && toNode) {
+                const edgePoint = findNearestPointOnSegment(
+                    lat, lon,
+                    fromNode.lat, fromNode.lon,
+                    toNode.lat, toNode.lon
+                );
+
+                const distance = haversineDistance(lat, lon, edgePoint[0], edgePoint[1]);
+
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestEdge = edge;
+                    nearestPoint = edgePoint;
+                }
+            }
+        });
+    });
+    return nearestPoint;
+}
+
+function findNearestPointOnSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    if (dx === 0 && dy === 0) {
+        return [x1, y1];
+    }
+    const t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
+    // Edge cases
+    if (t < 0) {
+        return [x1, y1];
+    }
+    if (t > 1) {
+        return [x2, y2];
+    }
+
+    return [x1 + t * dx, y1 + t * dy];
 }
 
 function updateDistanceAndElevation() {
@@ -259,6 +468,19 @@ function updateDistanceAndElevation() {
     currentElevation = calculateMockElevation(currentDistance);
     updateDistanceDisplay();
     updateElevationDisplay();
+}
+
+function updateDistanceSummary(distanceInMeters) {
+    const actualDistanceElement = document.getElementById('actualDistance');
+    let displayDistance;
+
+    if (currentUnit === 'km') {
+        displayDistance = distanceInMeters / 1000; // Convert meters to kilometers
+        actualDistanceElement.textContent = `Distance: ${displayDistance.toFixed(2)} km`;
+    } else {
+        displayDistance = distanceInMeters / 1609.34; // Convert meters to miles
+        actualDistanceElement.textContent = `Distance: ${displayDistance.toFixed(2)} mi`;
+    }
 }
 
 function calculateTotalDistance() {
@@ -356,21 +578,20 @@ function getQuote(index) {
 }
 
 function clearRoute() {
-    undoStack.push([...waypoints]);
-    redoStack = [];
+    // Clear waypoints and markers
+    waypoints = [];
     markers.forEach(marker => map.removeLayer(marker));
     markers = [];
-    waypoints = [];
-    map.eachLayer((layer) => {
-        if (layer instanceof L.Polyline) {
-            map.removeLayer(layer);
-        }
-    });
-    if (nodesLayer) map.removeLayer(nodesLayer);
-    currentDistance = 0;
-    currentElevation = 0;
-    updateDistanceDisplay();
-    updateElevationDisplay();
+
+    // Clear the routing machine
+    routingControl.setWaypoints([]);
+
+    // Clear the map information stuff
+    if (currentUnit === 'km') {
+        document.getElementById('actualDistance').textContent = 'Distance: 0.00 km';
+    } else {
+        document.getElementById('actualDistance').textContent = 'Distance: 0.00 mi';
+    }
 }
 
 function searchLocation() {
@@ -425,6 +646,7 @@ function undo() {
         redoStack.push([...waypoints]);
         waypoints = undoStack.pop();
         updateRouteAndMarkers();
+        routingControl.setWaypoints(waypoints);
     }
 }
 
@@ -433,99 +655,31 @@ function redo() {
         undoStack.push([...waypoints]);
         waypoints = redoStack.pop();
         updateRouteAndMarkers();
+        routingControl.setWaypoints(waypoints);
     }
 }
 
 function updateRouteAndMarkers() {
-    markers.forEach(marker => map.removeLayer(marker));
+    // Remove ALL existing markers from the map
+    for (let i = markers.length - 1; i >= 0; i--) {
+        if (markers[i]) {
+            map.removeLayer(markers[i]);
+        }
+    }
+
+    // Clear the markers array
     markers = [];
-    map.eachLayer((layer) => {
-        if (layer instanceof L.Polyline) {
-            map.removeLayer(layer);
-        }
-    });
 
+    // Add new markers for each waypoint
     waypoints.forEach((latlng, index) => {
-        let color = 'black', fillColor;
-        if (index === 0) {
-            fillColor = 'green';
-        } else if (index === waypoints.length - 1) {
-            fillColor = 'red';
-        } else {
-            fillColor = 'white';
-        }
-
-        let radius;
-
-        if (index === 0 || index === waypoints.length - 1)
-            radius = 10;
-        else
-            radius = 8;
-
-        const newMarker = L.circleMarker(latlng, {
-            color: color,
-            fillColor: fillColor,
-            fillOpacity: 0.8,
-            radius: radius
-        }).addTo(map);
-        markers.push(newMarker);
-
-        // if (index > 0) {
-        //     L.polyline([waypoints[index - 1], latlng], {
-        //         color: '#z  ',
-        //         weight: 4
-        //     }).addTo(map);
-        // }
+        // Create marker code...
+        // Make sure to use the onDragEnd function defined above
+        marker.on('dragend', onDragEnd);
+        markers.push(marker);
     });
-    updateDistanceAndElevation();
-}
 
-function snapToNearestEdge(lat, lon) {
-    let nearestEdge = null;
-    let minDistance = Infinity;
-    let nearestPoint = [lat, lon];
-
-    Object.values(graph.edges).forEach(edgeList => {
-        edgeList.forEach(edge => {
-            const fromNode = graph.nodes[edge.from];
-            const toNode = graph.nodes[edge.to];
-
-            if (fromNode && toNode) {
-                const edgePoint = findNearestPointOnSegment(
-                    lat, lon,
-                    fromNode.lat, fromNode.lon,
-                    toNode.lat, toNode.lon
-                );
-
-                const distance = haversineDistance(lat, lon, edgePoint[0], edgePoint[1]);
-
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    nearestEdge = edge;
-                    nearestPoint = edgePoint;
-                }
-            }
-        });
-    });
-    return nearestPoint;
-}
-
-function findNearestPointOnSegment(px, py, x1, y1, x2, y2) {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    if (dx === 0 && dy === 0) {
-        return [x1, y1];
-    }
-    const t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
-    // Edge cases
-    if (t < 0) {
-        return [x1, y1];
-    }
-    if (t > 1) {
-        return [x2, y2];
-    }
-
-    return [x1 + t * dx, y1 + t * dy];
+    // Update the routing
+    routingControl.setWaypoints(waypoints);
 }
 
 const EARTH_RADIUS = 6371; // km
@@ -587,10 +741,10 @@ async function loadBathrooms() {
             bathrooms = data;
         }
     } else {
-        bathrooms = await fetchAndFilterObjects(
-            `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="toilets"](${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()});out;`,
-            './assets/Bathroom.png'
-        );
+        const url = `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="toilets"](${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()});out;`;
+        console.log('Fetching bathrooms:', url);
+
+        bathrooms = await fetchAndFilterObjects(url, './assets/Bathroom.png');
 
         // Cache the fetched data
         localStorage.setItem(cacheKey, JSON.stringify({ data: bathrooms, timestamp: Date.now() }));
@@ -618,10 +772,10 @@ async function loadTrafficLights() {
             lights = data;
         }
     } else {
-        lights = await fetchAndFilterObjects(
-            `https://overpass-api.de/api/interpreter?data=[out:json];node["highway"="traffic_signals"](${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()});out;`,
-            './assets/TrafficLight.png'
-        );
+        const url = `https://overpass-api.de/api/interpreter?data=[out:json];node["highway"="traffic_signals"](${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()});out;`;
+        console.log('Fetching traffic lights:', url);
+
+        lights = await fetchAndFilterObjects(url, './assets/TrafficLight.png');
 
         // Cache the fetched data
         localStorage.setItem(cacheKey, JSON.stringify({ data: lights, timestamp: Date.now() }));
@@ -725,6 +879,92 @@ out skel qt;
     return graph;
 }
 
+async function fetchRoadDataWithRateLimit(bbox, retries = 3) {
+    const query = `
+[out:json];
+(
+way["highway"](${bbox[0][0]},${bbox[0][1]},${bbox[1][0]},${bbox[1][1]});
+node(w);
+);
+out body;
+>;
+out skel qt;
+`;
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const response = await fetch('https://overpass-api.de/api/interpreter', {
+                method: 'POST',
+                body: query
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            const graph = {
+                nodes: {},
+                edges: {}
+            };
+
+            // Process all nodes
+            data.elements.forEach(element => {
+                if (element.type === 'node') {
+                    graph.nodes[element.id] = {
+                        id: element.id,
+                        lat: element.lat,
+                        lon: element.lon
+                    };
+                }
+            });
+
+            // Process all ways
+            data.elements.forEach(element => {
+                if (element.type === 'way' && element.tags && element.tags.highway) {
+                    for (let i = 1; i < element.nodes.length; i++) {
+                        const fromId = element.nodes[i - 1];
+                        const toId = element.nodes[i];
+                        if (graph.nodes[fromId] && graph.nodes[toId]) {
+                            const fromNode = graph.nodes[fromId];
+                            const toNode = graph.nodes[toId];
+                            const distance = haversineDistance(fromNode.lat, fromNode.lon, toNode.lat, toNode.lon);
+                            if (!graph.edges[fromId]) graph.edges[fromId] = [];
+                            if (!graph.edges[toId]) graph.edges[toId] = [];
+                            graph.edges[fromId].push({
+                                from: fromId,
+                                to: toId,
+                                distance,
+                                name: element.tags.name || '',
+                                highway: element.tags.highway
+                            });
+                            graph.edges[toId].push({
+                                from: toId,
+                                to: fromId,
+                                distance,
+                                name: element.tags.name || '',
+                                highway: element.tags.highway
+                            });
+                        }
+                    }
+                }
+            });
+
+            return graph;
+        } catch (error) {
+            console.error(`Attempt ${attempt} failed:`, error.message || error);
+
+            if (attempt === retries) {
+                throw new Error('Failed to fetch road data after multiple attempts.');
+            }
+
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
+    }
+}
+
 function visualizeData() {
     if (!graph) {
         console.error('No graph data available. Please fetch data first.');
@@ -791,7 +1031,7 @@ async function fetchData() {
     ];
 
     try {
-        const newGraph = await fetchRoadData(bbox);
+        const newGraph = await fetchRoadDataWithRateLimit(bbox);
         graph = mergeGraphs(graph, newGraph);
 
         if (Object.keys(graph.nodes).length === 0) {
@@ -870,7 +1110,7 @@ function findShortestPath(startNodeId, endNodeId) {
                 currentNode = previous[currentNode];
             }
             return path;
-        } 
+        }
 
         unvisited.delete(currentNodeId);
 
@@ -1109,7 +1349,24 @@ function mergeGraphs(existingGraph, newGraph) {
 
     return mergedGraph;
 }
- 
+
+function removeWaypoint() {
+    if (waypoints.length > 0) {
+        // Save the current state to the undo stack
+        undoStack.push([...waypoints]);
+        redoStack = []; // Clear the redo stack
+
+        // Remove the last waypoint
+        waypoints.pop();
+
+        // Update the route and markers
+        updateRouteAndMarkers();
+
+        // Recalculate the route in the routing machine
+        routingControl.setWaypoints(waypoints);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initMap();
     fetchQuotes();
@@ -1251,6 +1508,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (e.ctrlKey && e.key === 'y') {
             e.preventDefault();
             redo();
+        } else if (e.ctrlKey && e.key === 'x') {
+            e.preventDefault();
+            removeWaypoint();
         }
     });
 
